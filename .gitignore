@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.DS_Store
+results/ml_model.joblib
+results/scenario_grid.csv
