@@ -103,7 +103,7 @@ main{{padding:18px 4vw;display:grid;grid-template-columns:repeat(auto-fit,minmax
 <div class="hero"><h1>Circular Design Advisor</h1><p>Static, animated export of the dashboard for an aluminium exhibition-booth panel: reuse, repair, reprocessing, recycling or disposal. Baseline: design B, rental, 6 planned uses, 400 km.
 Recommended: <b>{viz.LAB[rec.strategy]}</b>. Press the play buttons on the animated charts.</p></div>
 <main>{''.join(parts)}</main>
-<div class="note">Illustrative model. Only {int(T['sources'][T['sources'].used_in_model].type.isin(['literature','database']).sum())} of {int(T['sources'].used_in_model.sum())} model inputs come from literature or public databases; the rest are flagged assumptions. Not affiliated with cirKPI. Full sources: data/literature_sources.csv.</div>
+<div class="note">Illustrative model. Only {int(T['sources'][T['sources'].used_in_model].type.isin(['literature','database']).sum())} of {int(T['sources'].used_in_model.sum())} model inputs come from literature or public databases; the rest are flagged assumptions. Full sources: data/literature_sources.csv.</div>
 </body></html>"""
     (ROOT / "docs" / "dashboard_static.html").write_text(html, encoding="utf-8")
 

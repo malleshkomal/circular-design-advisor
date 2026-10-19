@@ -1,0 +1,17 @@
+feature,importance,label
+is_repair,1.1646136741827964,Strategy: repair
+is_reuse,1.1471255862898135,Strategy: direct reuse
+is_reprocessing,1.0799275516564761,Strategy: reprocessing
+is_recycling,0.7370689777248292,Strategy: recycling
+ef_primary,0.2601371086889818,Primary Al footprint
+mass_kg,0.17227165394588065,Panel mass
+event_km,0.034861252219574215,Event distance
+transport_ef,0.028388307133942137,Freight emission factor
+n_uses,0.02732652505203037,Planned uses
+collection_rate,0.014634098729807832,Collection rate
+redeploy,0.00725387747787778,Redeployment probability
+transport_load_factor,0.00672441076769763,Truck load factor
+repairability,0.0053889257729007765,Repairability
+grid_ef,0.0034459686956315183,Electricity mix
+e_fab,0.0023533541175353003,Fabrication energy
+damage_rate,0.00038314614783150345,Damage rate

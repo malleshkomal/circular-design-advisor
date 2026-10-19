@@ -141,7 +141,7 @@ with sb.expander("Recommendation weights"):
          "economics": st.slider("Economics", 0.0, 1.0, WEIGHTS["economics"], 0.05), "feasibility": st.slider("Feasibility", 0.0, 1.0, WEIGHTS["feasibility"], 0.05)}
     if sum(w.values()) == 0:
         w = dict(WEIGHTS)
-sb.caption("Prototype built from literature and public data plus flagged assumptions. Not affiliated with cirKPI.")
+sb.caption("Prototype built from literature and public data plus flagged assumptions.")
 
 ctx = dict(design=design, business_model=bm, n_uses=n_uses, event_km=float(event_km), eol_km=float(eol_km), credit=credit, strategy=focus)
 changed = {k: v for k, v in p_over.items() if abs(v - CENTRAL[k]) > 1e-12}

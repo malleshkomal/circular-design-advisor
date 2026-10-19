@@ -4,7 +4,6 @@
 It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation, optimisation, machine learning and a chatbot that explains the calculated results.
 
 > **Read this first.** Only 6 of 26 model inputs come from literature or public databases (European Aluminium, IAI, Hydro, Umweltbundesamt, GLEC). The other 20, including damage rate, costs, design archetypes and business-model behaviour, are flagged assumptions. Results illustrate the method, not a real product.
-> **Independent project.** Inspired by the type of workflow described for the cirKPI project; not affiliated with or endorsed by cirKPI or TU Berlin.
 
 ![Overview](docs/screenshots/01_overview.png)
 

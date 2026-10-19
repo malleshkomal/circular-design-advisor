@@ -1,0 +1,119 @@
+{
+  "context": {
+    "design": "B",
+    "business_model": "rental",
+    "n_uses": 6,
+    "event_km": 400.0,
+    "eol_km": 100.0,
+    "credit": "net_scrap"
+  },
+  "recommended": "reuse",
+  "rule_based": "reuse",
+  "climate_per_use": {
+    "reuse": 5.74,
+    "repair": 5.53,
+    "reprocessing": 8.75,
+    "recycling": 21.11,
+    "disposal": 62.66
+  },
+  "cost_per_use": {
+    "reuse": 48.0,
+    "repair": 46.1,
+    "reprocessing": 56.8,
+    "recycling": 150.5,
+    "disposal": 178.1
+  },
+  "circularity": {
+    "reuse": 0.92,
+    "repair": 0.931,
+    "reprocessing": 0.925,
+    "recycling": 0.641,
+    "disposal": 0.325
+  },
+  "expected_uses": {
+    "reuse": 4.48,
+    "repair": 5.21,
+    "reprocessing": 4.79,
+    "recycling": 1.0,
+    "disposal": 1.0
+  },
+  "climate_cut_off": {
+    "reuse": 15.1,
+    "repair": 13.58,
+    "reprocessing": 17.5,
+    "recycling": 63.04,
+    "disposal": 62.66
+  },
+  "scores": {
+    "reuse": 0.939,
+    "repair": 0.939,
+    "reprocessing": 0.889,
+    "recycling": 0.627,
+    "disposal": 0.161
+  },
+  "break_even_uses": {
+    "reuse": 2,
+    "repair": 2,
+    "reprocessing": 2
+  },
+  "mc_prob_reuse_better_current": 1.0,
+  "mc_prob_reuse_better_stress": 0.9066666666666666,
+  "mc_median_climate": {
+    "reuse": 10.3,
+    "recycling": 29.36,
+    "disposal": 72.54
+  },
+  "ml_metrics": {
+    "r2": 0.9900685453956349,
+    "mae": 2.358555091792238,
+    "clf_accuracy": 0.99,
+    "reuse_win_share_test": 0.948,
+    "n_train_rows": 10000,
+    "n_test_rows": 2500
+  },
+  "ml_rf_probability_baseline": 0.9941666666666668,
+  "tornado_top5": [
+    {
+      "parameter": "Primary aluminium, cradle-to-gate (default: European average)",
+      "swing": 9.82
+    },
+    {
+      "parameter": "Collection rate of aluminium at end of life",
+      "swing": 9.76
+    },
+    {
+      "parameter": "Fabrication energy (cutting, machining, surface finish)",
+      "swing": 8.11
+    },
+    {
+      "parameter": "German electricity mix",
+      "swing": 5.91
+    },
+    {
+      "parameter": "Recycled (secondary) aluminium from post-consumer scrap",
+      "swing": 4.21
+    }
+  ],
+  "optimiser_best": {
+    "design": "C",
+    "strategy": "repair",
+    "business_model": "paas",
+    "n_uses": 8,
+    "event_km": 50,
+    "climate_per_use": 2.631560100794225,
+    "cost_per_use": 30.709698950905903,
+    "circularity": 0.9450384334853894
+  },
+  "pareto_size": 6,
+  "n_params_used": 26,
+  "n_params_literature_or_database": 6,
+  "validation_reduction_vs_recycling": {
+    "2": -0.4264734824091674,
+    "3": -0.5803919829874591,
+    "4": -0.6592839154406207,
+    "6": -0.7379065268868539,
+    "10": -0.8001641337713625
+  },
+  "published_reduction": -0.22,
+  "recycling_vs_reuse_gap_at_1_use_pct": 3.1763479579266507
+}

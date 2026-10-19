@@ -1,0 +1,6 @@
+strategy,label,family,feasibility_base,clean_kwh_per_kg,repair,reprocess,damage_factor,labour_h,note
+reuse,Direct reuse,reuse,0.85,0.05,0,0,1.0,0.05,"Inspect, clean, redeploy"
+repair,Repair and reuse,reuse,0.75,0.05,1,0,1.0,0.4,"Damaged repairable panels are fixed, others scrapped"
+reprocessing,Reprocessing,reuse,0.65,0.05,0,1,0.6,0.25,Strip and re-finish each time; fewer cumulative damage losses (assumed)
+recycling,Recycling,single,0.9,0,0,0,1.0,0,Single use then remelting
+disposal,Disposal,single,1.0,0,0,0,1.0,0,Single use then waste-to-energy

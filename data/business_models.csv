@@ -1,0 +1,4 @@
+kind,name,label,redeploy,margin,damage_mult,note
+business_model,sale,Sale,0.7,0.0,1.0,Owner decides whether to redeploy (assumed redeployment probability per event)
+business_model,rental,Rental,0.95,0.2,1.0,Provider retains ownership and collects panels (assumed)
+business_model,paas,Product-as-a-service,0.98,0.25,0.85,Provider maintains panels; fewer handling losses (assumed)

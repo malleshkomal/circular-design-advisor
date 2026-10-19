@@ -1,0 +1,4 @@
+design,name,mass_kg,repairability,fab_factor,cost_factor,damage_mult,technical_lifetime_events,disassembly,note
+A,Welded frame panel,14.0,0.3,1.0,0.85,1.0,15,0.3,"Design archetype (assumed): cheap, hard to repair"
+B,Screwed modular panel,12.0,0.9,1.15,1.1,0.9,40,0.9,"Design archetype (assumed): bolted joints, replaceable parts"
+C,Clip-fit lightweight panel,8.5,0.55,1.05,1.0,1.3,20,0.6,Design archetype (assumed): light but more fragile
