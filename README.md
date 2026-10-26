@@ -11,12 +11,12 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 
 | | What | How to open | Needs |
 |---|---|---|---|
-| 1 | **Offline dashboard** – fully interactive: sliders, scenario lab, Monte Carlo, optimiser, live LCI | Download the [**offline pack (zip)**](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/circular-design-advisor-offline.zip), unzip, double-click `dashboard_offline.html` | A web browser only |
+| 1 | **Offline dashboard** – fully interactive: sliders, scenario lab, Monte Carlo, optimiser, live LCI, and the whole Excel LCI workbook as a tab (with the .xlsx download built in) | Download the [**offline pack (zip)**](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/circular-design-advisor-offline.zip), unzip, double-click `dashboard_offline.html` | A web browser only |
 | 2 | **LCI workbook** – formula-driven Excel inventory, GWP by stage, cost, KPIs | Download [`outputs/LCI_inventory.xlsx`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/LCI_inventory.xlsx) | Excel or LibreOffice |
 | 2b | **LCI workbook viewer** – every sheet of the workbook in the browser; click a cell to see its formula | In the same [offline pack (zip)](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/circular-design-advisor-offline.zip): double-click `lci_workbook.html` | A web browser only |
 | 3 | **Streamlit app** – the full Python version, including machine learning and the assistant | `streamlit run app.py` | Python + `requirements.txt` |
 
-The offline pack holds the dashboard, the workbook viewer and the Excel file; keep them together, they link to each other. Opening an `.html` file straight from a GitHub link shows its source code, so use the zip (or, in a clone, open the files in `outputs/`). `outputs/dashboard_static.html` is an older animated, non-interactive export.
+`dashboard_offline.html` is self-contained: it also shows every sheet of the LCI workbook and can save the .xlsx, so that one file is enough. Opening an `.html` file straight from a GitHub link shows its source code, so use the zip (or, in a clone, open the files in `outputs/`). `outputs/dashboard_static.html` is an older animated, non-interactive export.
 
 ## What is inside
 
@@ -34,6 +34,18 @@ The offline pack holds the dashboard, the workbook viewer and the Excel file; ke
 | Dashboard | Streamlit with animated Plotly charts (press play), count-up KPI cards, streaming chat |
 | Offline dashboard | `outputs/dashboard_offline.html`: JavaScript port of the model (`web/model.js`) that reproduces the Python results exactly; everything except the ML and the chatbot |
 | LCI workbook | `outputs/LCI_inventory.xlsx`: flows per panel life and per use, GWP by stage, cost, KPIs and a validation sheet against the Python model |
+
+### Offline dashboard
+
+![Offline dashboard: overview](docs/screenshots/offline_01_overview.png)
+
+| Scenario lab: where reuse beats recycling | Optimiser: 2,538 scenarios and Pareto front |
+|---|---|
+| ![Scenario lab](docs/screenshots/offline_02_scenario.png) | ![Optimiser](docs/screenshots/offline_03_optimiser.png) |
+
+![LCI workbook tab: every sheet of the Excel inventory, with formulas](docs/screenshots/offline_04_lci_workbook.png)
+
+### Streamlit app
 
 | Scenario lab (animated) | Trade-offs |
 |---|---|

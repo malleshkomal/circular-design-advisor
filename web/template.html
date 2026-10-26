@@ -120,6 +120,25 @@ table.data a{color:var(--accent)}
 .note{font-size:12.5px;color:var(--muted)}
 .prose{max-width:80ch;display:grid;gap:8px}
 .prose p{margin:0}
+/* embedded Excel workbook */
+.wbtabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.wbtabs button{font:inherit;font-size:12.5px;background:none;border:0;border-bottom:3px solid transparent;color:var(--fg2);padding:6px 10px;cursor:pointer;white-space:nowrap}
+.wbtabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.fbar{display:flex;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:12px;min-width:0}
+.fbar .ref{color:var(--muted);min-width:5ch} .fbar code{overflow-x:auto;white-space:nowrap;min-width:0;flex:1}
+.wbgrid{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:6px}
+#wbsheet{border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+#wbsheet td{border:1px solid var(--grid);padding:4px 7px;vertical-align:top;max-width:420px;min-width:36px}
+#wbsheet td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+#wbsheet td.f{cursor:pointer} #wbsheet td.f:hover{background:var(--accent-2)} #wbsheet td.sel{outline:2px solid var(--accent);outline-offset:-2px}
+#wbsheet tr.title td{border:0;font-size:16px;font-weight:600;padding-top:8px}
+#wbsheet tr.note td{border:0;color:var(--muted);font-style:italic}
+#wbsheet td.h{background:var(--head);color:var(--on-head);font-weight:600;position:sticky;top:0;z-index:1}
+#wbsheet td.h.f:hover,#wbsheet td.h.sel{background:var(--head)}
+#wbsheet td.s{background:var(--accent-2);font-weight:600} #wbsheet td.t{background:var(--rail)}
+#wbsheet td.k{background:#fff3a6;color:#3d3500} #wbsheet td.b{font-weight:600}
+#wbsheet td.in{color:var(--s1)} #wbsheet td.as{color:var(--bad)} #wbsheet td.ok{color:var(--ok);font-weight:600}
+#wbsheet a{color:var(--accent)}
 #tip{position:fixed;z-index:50;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12.5px;padding:7px 9px;border-radius:6px;max-width:260px;line-height:1.35;opacity:0;transition:opacity .08s}
 #tip b{font-weight:600}
 @media (prefers-reduced-motion:reduce){#tip{transition:none}}
@@ -170,6 +189,7 @@ table.data a{color:var(--accent)}
       <button class="tab" role="tab" data-t="uncertainty">Uncertainty</button>
       <button class="tab" role="tab" data-t="optimiser">Optimiser</button>
       <button class="tab" role="tab" data-t="inventory">Inventory (LCI)</button>
+      <button class="tab" role="tab" data-t="workbook">LCI workbook (Excel)</button>
       <button class="tab" role="tab" data-t="methods">Data and methods</button>
     </nav>
 
@@ -199,9 +219,17 @@ table.data a{color:var(--accent)}
     </section>
 
     <section class="panel" data-p="inventory" hidden>
-      <div class="card wide"><div class="row" style="flex-wrap:wrap"><h4 id="invh">Life cycle inventory</h4><span style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="lci_workbook.html" style="text-decoration:none">Open workbook viewer</a><a class="btn" href="LCI_inventory.xlsx" download style="text-decoration:none">Download Excel workbook</a></span></div>
+      <div class="card wide"><div class="row" style="flex-wrap:wrap"><h4 id="invh">Life cycle inventory</h4><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="go-wb">Open the Excel workbook tab</button><button class="btn xlsx-dl">Download Excel workbook</button></span></div>
         <p class="sub">Foreground flows for one panel over its expected life and per functional unit (one use), with the emission factor applied. Updates with every input.</p>
         <div class="tw"><table class="data" id="t-inv"></table></div></div>
+    </section>
+
+    <section class="panel" data-p="workbook" hidden>
+      <div class="card wide"><div class="row" style="flex-wrap:wrap"><h4>LCI workbook (Excel)</h4><button class="btn xlsx-dl">Download Excel workbook</button></div>
+        <p class="sub">All sheets of LCI_inventory.xlsx: parameters, inventory flows, GWP by stage, cost and KPIs, shown with their values at the default context (design B, rental, 6 uses, 400 km, net scrap). Click a calculated cell to see its Excel formula. Download the file to change inputs in Excel; the sliders on the left give live results in the other tabs.</p>
+        <div class="wbtabs" id="wbtabs" role="tablist"></div>
+        <div class="fbar"><span class="ref" id="wbref">fx</span><code id="wbf">Select a calculated cell to see its formula.</code></div>
+        <div class="wbgrid"><table id="wbsheet"></table></div></div>
     </section>
 
     <section class="panel" data-p="methods" hidden>
@@ -219,6 +247,8 @@ table.data a{color:var(--accent)}
 
 <script>
 const DATA = __DATA__;
+const WORKBOOK = __WORKBOOK__;
+const XLSX_B64 = "__XLSX_B64__";
 __MODEL__
 </script>
 <script>
@@ -331,6 +361,7 @@ function draw() {
   if (S.tab === "uncertainty") { drawMC(); drawTor(); }
   if (S.tab === "optimiser") { drawGrid(); }
   if (S.tab === "inventory") tableInv();
+  if (S.tab === "workbook") renderWB();
   if (S.tab === "methods") tableSrc();
 }
 
@@ -595,6 +626,46 @@ function tableInv() {
   $("t-inv").innerHTML = html;
 }
 
+// ---------- embedded Excel workbook
+let wbSheet = "LCI";
+const colName = i => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+function renderWB() {
+  const tabs = $("wbtabs");
+  if (!tabs.childElementCount) for (const sh of WORKBOOK) {
+    const b = document.createElement("button"); b.role = "tab"; b.dataset.n = sh.name; b.textContent = sh.name.replace(/_/g, " ");
+    b.addEventListener("click", () => { wbSheet = sh.name; renderWB(); }); tabs.appendChild(b);
+  }
+  for (const b of tabs.children) b.setAttribute("aria-selected", b.dataset.n === wbSheet);
+  const sh = WORKBOOK.find(x => x.name === wbSheet), t = $("wbsheet"), plain = ["Product_Design", "Strategies", "Business_Models"].includes(wbSheet);
+  const width = Math.max(...sh.rows.map(r => r.length));
+  t.textContent = "";
+  sh.rows.forEach((row, ri) => {
+    const tr = document.createElement("tr");
+    if (!plain && ri === 0) tr.className = "title"; else if (!plain && ri === 1) tr.className = "note";
+    row.forEach((c, ci) => {
+      const td = document.createElement("td");
+      if (c[1]) td.className = c[1];
+      if (c[0] === "OK" && wbSheet === "Validation") td.classList.add("ok");
+      if (c[1].split(" ").includes("u")) { const a = document.createElement("a"); a.href = c[0]; a.target = "_blank"; a.rel = "noopener"; a.textContent = c[0]; td.appendChild(a); } else td.textContent = c[0];
+      if (c[2]) { td.dataset.f = c[2]; td.dataset.ref = colName(ci) + (ri + 1); td.tabIndex = 0; }
+      if (tr.className && ci === 0) td.colSpan = width;
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  $("wbref").textContent = "fx"; $("wbf").textContent = "Select a calculated cell to see its formula.";
+}
+function pickCell(td) { document.querySelectorAll("#wbsheet td.sel").forEach(x => x.classList.remove("sel")); td.classList.add("sel"); $("wbref").textContent = td.dataset.ref; $("wbf").textContent = td.dataset.f; }
+$("wbsheet").addEventListener("click", e => { const td = e.target.closest("td.f"); if (td) pickCell(td); });
+$("wbsheet").addEventListener("keydown", e => { if (e.key === "Enter") { const td = e.target.closest("td.f"); if (td) pickCell(td); } });
+$("go-wb").addEventListener("click", () => { S.tab = "workbook"; showTab(); window.scrollTo({ top: document.getElementById("tabs").offsetTop - 8 }); });
+for (const b of document.querySelectorAll(".xlsx-dl")) b.addEventListener("click", () => {
+  const bytes = Uint8Array.from(atob(XLSX_B64), c => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const a = document.createElement("a"); a.href = url; a.download = "LCI_inventory.xlsx"; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+});
+
 function tableSrc() {
   if ($("t-src").dataset.done) return;
   $("t-src").dataset.done = 1;
@@ -605,7 +676,7 @@ function tableSrc() {
 
 let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(draw, 120); }).observe(document.querySelector("main"));
 syncInputs();
-const h0 = location.hash.slice(1); if (["overview", "scenario", "uncertainty", "optimiser", "inventory", "methods"].includes(h0)) S.tab = h0;
+const h0 = location.hash.slice(1); if (["overview", "scenario", "uncertainty", "optimiser", "inventory", "workbook", "methods"].includes(h0)) S.tab = h0;
 update(); showTab();
 })();
 </script>
