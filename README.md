@@ -41,6 +41,7 @@ pytest                                # 16 tests
 ```
 
 `docs/dashboard_static.html` is a self-contained animated export you can open in any browser without Python.
+`docs/dashboard_offline.html` is a fully interactive offline dashboard: the model, scenario lab, Monte Carlo, optimiser and live LCI all run in the browser (JavaScript port that reproduces the Python results). Download the `docs/` folder and double-click the file; no internet or Python needed.
 The first dashboard start trains the ML models if `results/ml_model.joblib` is missing (about 30 seconds).
 
 Optional: set `ANTHROPIC_API_KEY` to let an LLM rephrase chatbot answers (`CHATBOT_LLM_MODEL` selects the model). The numbers always come from the model; this wrapper is untested in this repository.

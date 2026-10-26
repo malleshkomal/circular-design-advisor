@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circular Design Advisor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control rail on the left (stacks on top below 960px), results column on the right: header, KPI strip, verdict, tabbed analysis */
+:root{
+  --bg:#f3f5f4; --panel:#ffffff; --rail:#e9eeec; --fg:#14201c; --fg2:#45524d; --muted:#6b7772; --line:#d6dedb; --grid:#e7ecea;
+  --accent:#0f5e52; --accent-2:#e3f0ec; --on-accent:#ffffff; --head:#0f3d36; --on-head:#e8f3ef; --chip:#1b5047;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --st-prod:#3b4a5c; --st-trans:#7d8a99; --st-clean:#b7c0ca; --st-eol:#d7dde3; --st-credit:#008300;
+  --div-neg:#2a78d6; --div-pos:#e34948; --div-mid:#eceeed; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --warn-bg:#fdf3e2; --ok-bg:#e6f4ea;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1513; --panel:#151e1b; --rail:#121a18; --fg:#e3ebe8; --fg2:#b9c5c0; --muted:#8c9a95; --line:#2a3632; --grid:#1f2a27;
+  --accent:#4fc3a6; --accent-2:#1a2f2a; --on-accent:#08201a; --head:#123a33; --on-head:#dff2eb; --chip:#1d4a42;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --st-prod:#a9b7c6; --st-trans:#7b8896; --st-clean:#55616d; --st-eol:#3a444e; --st-credit:#2fa34a;
+  --div-neg:#3987e5; --div-pos:#e66767; --div-mid:#2a3330; --ok:#4ade80; --warn:#f59e0b; --bad:#f87171; --warn-bg:#33270f; --ok-bg:#12301d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1513; --panel:#151e1b; --rail:#121a18; --fg:#e3ebe8; --fg2:#b9c5c0; --muted:#8c9a95; --line:#2a3632; --grid:#1f2a27;
+  --accent:#4fc3a6; --accent-2:#1a2f2a; --on-accent:#08201a; --head:#123a33; --on-head:#dff2eb; --chip:#1d4a42;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --st-prod:#a9b7c6; --st-trans:#7b8896; --st-clean:#55616d; --st-eol:#3a444e; --st-credit:#2fa34a;
+  --div-neg:#3987e5; --div-pos:#e66767; --div-mid:#2a3330; --ok:#4ade80; --warn:#f59e0b; --bad:#f87171; --warn-bg:#33270f; --ok-bg:#12301d; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.app{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}
+@media (max-width:960px){.app{grid-template-columns:1fr}}
+/* rail */
+.rail{background:var(--rail);border-right:1px solid var(--line);padding-block:24px;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:18px;display:flex;flex-direction:column;gap:18px}
+@media (min-width:961px){.rail{position:sticky;top:0;height:100vh;overflow-y:auto}}
+@media (max-width:960px){.rail{border-right:0;border-bottom:1px solid var(--line);padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:max(16px,env(safe-area-inset-left,0px))}}
+.rail h2{font-family:var(--display);font-size:17px;font-weight:600;margin:0}
+.field{display:grid;gap:6px}
+.field label,.lab{font-size:12.5px;font-weight:500;color:var(--fg2)}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.val{font-family:var(--mono);font-size:12.5px;color:var(--fg);font-variant-numeric:tabular-nums}
+select,input[type=number]{font:inherit;font-size:13.5px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{font:inherit;font-size:13px;border:0;background:none;color:var(--fg2);padding:7px 6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+details{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+summary{cursor:pointer;padding:9px 11px;font-size:13px;font-weight:500;list-style-position:inside}
+details .inner{padding:4px 11px 12px;display:grid;gap:10px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:6px;align-items:center}
+.prow .pn{font-size:12px;color:var(--fg2);line-height:1.25}
+.prow input{padding:5px 7px;font-family:var(--mono);font-size:12px;color:var(--s1)}
+.prow input.changed{border-color:var(--warn);background:var(--warn-bg)}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:0 5px;border-radius:3px;margin-left:4px;vertical-align:1px}
+.tag.lit{background:var(--ok-bg);color:var(--ok)} .tag.ass{background:var(--warn-bg);color:var(--warn)}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:6px;padding:7px 10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.foot{font-size:12px;color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* main */
+main{min-width:0;padding-block:24px 56px;padding-left:max(16px,min(32px,4vw));padding-right:max(16px,env(safe-area-inset-right,0px),min(32px,4vw));display:grid;gap:18px;align-content:start;max-width:1320px}
+.head{background:var(--head);color:var(--on-head);border-radius:10px;padding:22px 24px;display:grid;gap:10px}
+.head h1{font-family:var(--display);font-weight:600;font-size:clamp(24px,3vw,32px);margin:0;letter-spacing:-.005em;text-wrap:balance}
+.head p{margin:0;max-width:78ch;opacity:.92}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:12px;background:var(--chip);padding:3px 9px;border-radius:999px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:460px){.kpis{grid-template-columns:1fr}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:4px;align-content:start}
+.kpi .k{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--display);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .v small{font-family:var(--body);font-size:13px;font-weight:500;color:var(--fg2);margin-left:4px}
+.kpi .d{font-size:12.5px;color:var(--fg2)}
+.delta-good{color:var(--ok);font-weight:600} .delta-bad{color:var(--bad);font-weight:600}
+.verdict{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 20px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.verdict{grid-template-columns:1fr}}
+.verdict h3{font-family:var(--display);font-size:20px;font-weight:600;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-family:var(--body);font-size:13px;font-weight:600;background:var(--accent);color:var(--on-accent);padding:3px 10px;border-radius:999px}
+.verdict ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.warnbox{margin-top:10px;display:grid;gap:6px}
+.warnbox div{background:var(--warn-bg);color:var(--fg);border-left:3px solid var(--warn);padding:6px 10px;border-radius:4px;font-size:13px}
+.cond{font-size:12.5px;color:var(--muted);margin-top:10px}
+.rules{width:100%;border-collapse:collapse;font-size:12.5px}
+.rules td,.rules th{padding:5px 6px;border-bottom:1px solid var(--grid);text-align:left}
+.rules th{font-weight:500;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.pass{color:var(--ok);font-weight:600;white-space:nowrap} .fail{color:var(--bad);font-weight:600;white-space:nowrap}
+/* tabs */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{font:inherit;font-size:14px;background:none;border:0;border-bottom:3px solid transparent;color:var(--fg2);padding:9px 14px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:1000px){.panel{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0;display:grid;gap:8px;align-content:start}
+.card.wide{grid-column:1/-1}
+.card h4{margin:0;font-size:15px;font-weight:600}
+.card .sub{margin:0;font-size:12.5px;color:var(--muted)}
+.chart{width:100%;min-height:40px;position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--body);font-size:11.5px;fill:var(--fg2)}
+.chart .ax{stroke:var(--line)} .chart .gl{stroke:var(--grid)}
+.chart .lbl{fill:var(--fg);font-weight:500}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--fg2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px}
+.legend i.dot{border-radius:50%;width:9px;height:9px;background:var(--fg)}
+.tw{overflow-x:auto}
+table.data{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+table.data th{font-size:11.5px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:right;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.data th:first-child,table.data td:first-child{text-align:left}
+table.data td{padding:7px 9px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+table.data td.l{text-align:left;white-space:normal}
+table.data tr.best td{background:var(--accent-2);font-weight:600}
+table.data tr.sec td{background:var(--rail);font-weight:600}
+table.data a{color:var(--accent)}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0}
+.stat{display:flex;flex-wrap:wrap;gap:22px;align-items:baseline}
+.stat b{font-family:var(--display);font-size:30px;font-weight:600}
+.stat span{color:var(--fg2);font-size:13px}
+.note{font-size:12.5px;color:var(--muted)}
+.prose{max-width:80ch;display:grid;gap:8px}
+.prose p{margin:0}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12.5px;padding:7px 9px;border-radius:6px;max-width:260px;line-height:1.35;opacity:0;transition:opacity .08s}
+#tip b{font-weight:600}
+@media (prefers-reduced-motion:reduce){#tip{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Inputs">
+    <h2>Your product</h2>
+    <div class="field"><label for="design">Panel design</label><select id="design"></select></div>
+    <div class="field"><label for="bm">Business model</label><select id="bm"></select></div>
+    <div class="field"><div class="row"><label for="n">Planned uses per panel</label><span class="val" id="nv"></span></div><input type="range" id="n" min="1" max="40" step="1"></div>
+    <div class="field"><div class="row"><label for="km">Distance depot to event (km)</label><span class="val" id="kmv"></span></div><input type="range" id="km" min="0" max="1500" step="25"></div>
+    <div class="field"><div class="row"><label for="eol">Distance to recycler (km)</label><span class="val" id="eolv"></span></div><input type="range" id="eol" min="0" max="500" step="10"></div>
+    <div class="field"><span class="lab" id="credit-l">Recycling credit method</span>
+      <div class="seg" role="group" aria-labelledby="credit-l"><button id="c-net" data-c="net_scrap">Net scrap</button><button id="c-cut" data-c="cut_off">Cut-off</button></div></div>
+    <div class="field"><label for="insp">Strategy to inspect</label><select id="insp"></select></div>
+    <details><summary>Recommendation weights</summary><div class="inner" id="weights"></div></details>
+    <details><summary>Model parameters (<span id="nchanged">0</span> changed)</summary><div class="inner" id="params"></div></details>
+    <button class="btn" id="reset">Reset all inputs</button>
+    <p class="foot">Only 6 of 26 inputs come from literature or public databases; the rest are flagged assumptions. Results illustrate the method, not a real product.</p>
+  </aside>
+
+  <main>
+    <section class="head">
+      <h1>Circular Design Advisor</h1>
+      <p>Should an exhibition-booth aluminium panel be reused, repaired, reprocessed, recycled or disposed of? Every number below is recalculated in your browser from the transparent per-use LCA model as you change the inputs.</p>
+      <div class="chips"><span>LCA per use</span><span>Circularity (MCI)</span><span>Weighted score + rules</span><span>Monte Carlo</span><span>Tornado sensitivity</span><span>Live LCI</span></div>
+    </section>
+
+    <section class="kpis" id="kpis" aria-label="Key figures"></section>
+
+    <section class="verdict">
+      <div>
+        <h3>Recommended under these assumptions <span class="pill" id="best"></span></h3>
+        <ul id="reasons"></ul>
+        <div class="warnbox" id="warns"></div>
+        <p class="cond">Conditional on the inputs on the left; there is no universal best route.</p>
+      </div>
+      <div>
+        <div class="row" style="margin-bottom:6px"><b style="font-size:13px">Transparent rules</b><span class="note" id="rulepick"></span></div>
+        <div class="tw"><table class="rules"><thead><tr><th>Rule</th><th>Test</th><th>Value</th><th></th></tr></thead><tbody id="rules"></tbody></table></div>
+      </div>
+    </section>
+
+    <nav class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-t="overview">Overview</button>
+      <button class="tab" role="tab" data-t="scenario">Scenario lab</button>
+      <button class="tab" role="tab" data-t="uncertainty">Uncertainty</button>
+      <button class="tab" role="tab" data-t="optimiser">Optimiser</button>
+      <button class="tab" role="tab" data-t="inventory">Inventory (LCI)</button>
+      <button class="tab" role="tab" data-t="methods">Data and methods</button>
+    </nav>
+
+    <section class="panel" data-p="overview">
+      <div class="card"><h4>Recommendation score by strategy</h4><p class="sub" id="wsub"></p><div class="chart" id="c-score"></div></div>
+      <div class="card"><h4>Criteria behind the score</h4><p class="sub">Each criterion on a 0–1 scale, higher is better (climate and cost are min–max scaled across the five strategies).</p><div class="chart" id="c-crit"></div></div>
+      <div class="card"><h4>Where the climate impact comes from</h4><p class="sub">kg CO₂e per use by life-cycle stage; the recycling credit offsets production. Dot = net total.</p><div class="legend" id="lg-stage"></div><div class="chart" id="c-stack"></div></div>
+      <div class="card"><h4>Material flow of one panel</h4><p class="sub" id="flowsub"></p><div class="chart" id="c-flow"></div></div>
+      <div class="card wide"><h4>All strategies compared</h4><div class="tw"><table class="data" id="t-kpi"></table></div></div>
+    </section>
+
+    <section class="panel" data-p="scenario" hidden>
+      <div class="card wide"><h4>Climate impact per use vs planned uses</h4><p class="sub" id="usesub"></p><div class="legend" id="lg-uses"></div><div class="chart" id="c-uses"></div></div>
+      <div class="card wide"><h4>Climate impact per use vs event distance</h4><p class="sub">At the current number of planned uses. Long trips erode the reuse advantage because reuse routes travel out and back every event.</p><div class="legend" id="lg-km"></div><div class="chart" id="c-km"></div></div>
+      <div class="card wide"><h4>Where reuse beats recycling</h4><p class="sub">% change in climate impact per use of the best reuse route (reuse, repair or reprocessing) against recycling, for your design, business model and inputs. Blue = reuse better, red = recycling better.</p><div class="legend" id="lg-gap"></div><div class="chart" id="c-gap"></div></div>
+    </section>
+
+    <section class="panel" data-p="optimiser" hidden>
+      <div class="card wide"><h4>Full scenario grid and Pareto front</h4><p class="sub" id="gridsub"></p><div class="legend" id="lg-grid"></div><div class="chart" id="c-grid"></div></div>
+      <div class="card wide"><h4>Top 10 combinations</h4><p class="sub">Exhaustive search. Objective = 0.50 × scaled climate + 0.25 × scaled cost − 0.25 × circularity (lower is better); best planned-use and distance setting kept for each design × strategy × business model.</p><div class="tw"><table class="data" id="t-opt"></table></div></div>
+    </section>
+
+    <section class="panel" data-p="uncertainty" hidden>
+      <div class="card wide"><h4>Monte Carlo over the parameter ranges</h4><p class="sub">1,000 draws, triangular(low, current value, high) for every ranged parameter, fixed seed. Bars show the 5–95 % range, boxes 25–75 %, line the median.</p>
+        <div class="stat" id="mcstat"></div><div class="chart" id="c-mc"></div></div>
+      <div class="card wide"><h4 id="torh">What drives the gap to recycling</h4><p class="sub" id="torsub"></p><div class="legend"><span><i style="background:var(--s1)"></i>Parameter at low end</span><span><i style="background:var(--s2)"></i>Parameter at high end</span></div><div class="chart" id="c-tor"></div></div>
+    </section>
+
+    <section class="panel" data-p="inventory" hidden>
+      <div class="card wide"><div class="row" style="flex-wrap:wrap"><h4 id="invh">Life cycle inventory</h4><a class="btn" href="LCI_inventory.xlsx" download style="text-decoration:none">Download Excel workbook</a></div>
+        <p class="sub">Foreground flows for one panel over its expected life and per functional unit (one use), with the emission factor applied. Updates with every input.</p>
+        <div class="tw"><table class="data" id="t-inv"></table></div></div>
+    </section>
+
+    <section class="panel" data-p="methods" hidden>
+      <div class="card wide prose"><h4>How the model works</h4>
+        <p><b>Functional unit:</b> one use of one panel at one exhibition event. All burdens of a panel's life are spread over the expected number of uses: per use = (production + Σ per-event burdens + end of life − credit) / expected uses.</p>
+        <p><b>Expected uses</b> follow geometric survival: E[uses] = Σ<sub>k=0..N−1</sub>(1−p)<sup>k</sup>, where p combines handling damage (not repaired) and the chance a panel is not redeployed.</p>
+        <p><b>Credit:</b> net scrap credits only recovered metal beyond the recycled input share, valued at (EF primary − EF secondary), which avoids counting recycled content twice. Cut-off gives no credit.</p>
+        <p><b>Circularity</b> is a simplified Ellen MacArthur Material Circularity Indicator with utility = expected uses. <b>Score</b> = weighted sum of min–max scaled climate and cost plus circularity and feasibility.</p>
+        <p class="note">This page is a JavaScript port of src/cirdesign (model.py, recommend.py, analysis.py) and reproduces the Python results exactly. Monte Carlo uses its own random generator, so individual draws differ from Python's. The Python project also trains a Random Forest surrogate of this model; it is left out here because the model itself runs in milliseconds in the browser, so a learned imitation adds nothing.</p></div>
+      <div class="card wide"><h4>Inputs and sources</h4><div class="tw"><table class="data" id="t-src"></table></div></div>
+    </section>
+  </main>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const DATA = {"sources": [{"id": "ef_primary", "parameter": "Primary aluminium, cradle-to-gate (default: European average)", "value": 6.3, "low": 4.0, "high": 14.8, "unit": "kg CO2e/kg", "type": "literature", "used_in_model": true, "quality": 4, "source": "European Aluminium, Environmental Profile Report 2024 (press release 6 Nov 2024)", "year": "2023", "url": "https://european-aluminium.eu/wp-content/uploads/2024/11/06-11-24-European-Aluminium-Environmental-Profile-Report-launch-PR.pdf", "note": "European primary aluminium 6.3 kg CO2 per kg in 2023 (6.7 in 2015). Range: lower bound from Hydro (hydropower-based regions, below 4); upper bound = IAI global average."}, {"id": "ef_primary_global", "parameter": "Primary aluminium, global average", "value": 14.8, "low": null, "high": null, "unit": "kg CO2e/kg", "type": "literature", "used_in_model": false, "quality": 4, "source": "International Aluminium Institute, GHG emissions intensity release (Dec 2024)", "year": "2023", "url": "https://international-aluminium.org/global-aluminium-industry-greenhouse-gas-emissions-intensity-reduction-continues-with-total-emissions-below-2020-peak", "note": "14.8 t CO2e per t primary aluminium in 2023. Used as the upper bound of ef_primary."}, {"id": "ef_secondary", "parameter": "Recycled (secondary) aluminium from post-consumer scrap", "value": 0.5, "low": 0.4, "high": 0.9, "unit": "kg CO2e/kg", "type": "literature", "used_in_model": true, "quality": 3, "source": "Hydro, 'Carbon footprint of recycled aluminium' (via climateaction.org)", "year": "2021", "url": "https://climateaction.org/news/carbon-footprint-of-recycled-aluminium", "note": "Approximately 0.5 t CO2e per t for the recycling process, post-consumer scrap. Range is an assumption."}, {"id": "grid_ef", "parameter": "German electricity mix", "value": 0.344, "low": 0.1, "high": 0.45, "unit": "kg CO2e/kWh", "type": "database", "used_in_model": true, "quality": 4, "source": "Umweltbundesamt (UBA), CO2-Emissionen pro Kilowattstunde Strom 2025 (page dated 23 Mar 2026)", "year": "2025", "url": "https://www.umweltbundesamt.de/themen/co2-emissionen-pro-kilowattstunde-strom-2025-nur", "note": "344 g CO2/kWh for 2025 (estimate); 353 g for 2024 (preliminary). Range lower bound = a decarbonised mix (assumption)."}, {"id": "transport_ef", "parameter": "Road freight, articulated truck <40 t, diesel, per tonne-km (full load)", "value": 0.058, "low": 0.058, "high": 0.562, "unit": "kg CO2e/(t*km)", "type": "database", "used_in_model": true, "quality": 3, "source": "GLEC Framework v3.0 default (via Climatiq); upper bound BEIS/DEFRA 2022 rigid HGV 3.5-7.5 t average laden", "year": "2023", "url": "https://www.climatiq.io/data/emission-factor/551e7a49-d6c2-4def-9db3-e9e98dc03da4", "note": "Climatiq lists the GLEC factor as deprecated (superseded by a newer release); re-check before real use. Upper bound 0.562 (BEIS 2022, fuel combustion only) represents small partly loaded vehicles."}, {"id": "transport_load_factor", "parameter": "Average load factor of exhibition transport", "value": 0.6, "low": 0.4, "high": 0.9, "unit": "share", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Panels are rarely shipped in full trucks; effective factor = EF / load factor."}, {"id": "lme_price_usd_t", "parameter": "LME aluminium price", "value": 3100.0, "low": 2500.0, "high": 3500.0, "unit": "USD/t", "type": "database", "used_in_model": true, "quality": 2, "source": "alcircle market report, LME aluminium offer price at October start (about 3,109.5 USD/t)", "year": null, "url": "https://www.alcircle.com/news/lme-aluminium-offer-price-eases-0-34-to-3-109-5-t-at-october-start-as-stocks-dip-to-240-625t-121420", "note": "Article could not be re-fetched to confirm its year; treat as approximate. Check the LME for a current price."}, {"id": "usd_eur", "parameter": "USD to EUR conversion", "value": 0.9, "low": 0.85, "high": 0.95, "unit": "EUR/USD", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Fixed conversion for the cost proxy."}, {"id": "scrap_price_ratio", "parameter": "Scrap price as share of LME price", "value": 0.7, "low": 0.55, "high": 0.85, "unit": "share", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Typical discount of aluminium scrap to LME; not verified against a price series."}, {"id": "collection_rate", "parameter": "Collection rate of aluminium at end of life", "value": 0.95, "low": 0.8, "high": 0.99, "unit": "share", "type": "literature", "used_in_model": true, "quality": 4, "source": "European Aluminium, 'Collection of aluminium building products at their end-of-life'", "year": "2004 study", "url": "https://european-aluminium.eu/blog/collection-of-aluminium-building-products-at-their-end-of-life/", "note": "More than 95 % collection in 9 studied buildings; 98.3 % (Germany) and 99.3 % (Netherlands) case studies. Building products, applied here to booth panels as a proxy."}, {"id": "melt_yield", "parameter": "Metal yield of remelting", "value": 0.95, "low": 0.9, "high": 0.98, "unit": "share", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Share of collected metal that leaves the remelter as usable metal."}, {"id": "recycled_content", "parameter": "Recycled content of new panels", "value": 0.3, "low": 0.1, "high": 0.6, "unit": "share", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Share of secondary aluminium in new extrusions."}, {"id": "e_fab", "parameter": "Fabrication energy (cutting, machining, surface finish)", "value": 1.5, "low": 0.8, "high": 3.0, "unit": "kWh/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Electricity per kg of panel; scaled by a design factor."}, {"id": "sort_energy", "parameter": "Dismantling and sorting energy before remelting", "value": 0.15, "low": 0.05, "high": 0.3, "unit": "kWh/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "disposal_ef", "parameter": "Waste-to-energy process burden for aluminium", "value": 0.02, "low": 0.01, "high": 0.05, "unit": "kg CO2e/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "disposal_recovery", "parameter": "Metal recovered from incineration bottom ash", "value": 0.2, "low": 0.1, "high": 0.5, "unit": "share", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Under net-scrap crediting this earns no credit when it is below the recycled content."}, {"id": "damage_rate", "parameter": "Panel loss rate per event from handling damage", "value": 0.08, "low": 0.02, "high": 0.25, "unit": "probability per event", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Main uncertainty: no published damage rate for exhibition panels was found."}, {"id": "e_clean", "parameter": "Cleaning and inspection energy per reuse event", "value": 0.05, "low": 0.02, "high": 0.15, "unit": "kWh/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "e_repair", "parameter": "Repair energy per repair", "value": 0.3, "low": 0.15, "high": 0.6, "unit": "kWh/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "repair_share", "parameter": "Replacement material per repair (share of mass)", "value": 0.1, "low": 0.03, "high": 0.25, "unit": "share", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "e_reprocess", "parameter": "Reprocessing energy per event (stripping, re-finishing)", "value": 0.8, "low": 0.4, "high": 1.5, "unit": "kWh/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "manuf_cost", "parameter": "Manufacturing cost on top of metal", "value": 8.0, "low": 5.0, "high": 12.0, "unit": "EUR/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": "Extrusion, machining and finishing."}, {"id": "handling_cost", "parameter": "Set-up and dismantling labour per event", "value": 6.0, "low": 3.0, "high": 10.0, "unit": "EUR/panel/event", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "storage_cost", "parameter": "Storage per panel between events", "value": 3.0, "low": 1.0, "high": 6.0, "unit": "EUR/panel/event", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "labour_rate", "parameter": "Workshop labour rate", "value": 45.0, "low": 35.0, "high": 60.0, "unit": "EUR/h", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "transport_cost", "parameter": "Freight cost per tonne-km", "value": 0.25, "low": 0.15, "high": 0.6, "unit": "EUR/(t*km)", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "gate_fee", "parameter": "Disposal gate fee", "value": 0.15, "low": 0.08, "high": 0.3, "unit": "EUR/kg", "type": "assumption", "used_in_model": true, "quality": 2, "source": "Author assumption", "year": null, "url": null, "note": null}, {"id": "material_loop_ref", "parameter": "Reference share of booth mass that can be materially recovered", "value": 0.7, "low": null, "high": null, "unit": "share", "type": "literature", "used_in_model": false, "quality": 3, "source": "AUMA, Guide Resource Management for trade fairs, section 7.1, p. 40", "year": "2026", "url": "https://www.auma.de/fileadmin/publikationen/guide-resource-management-auma-fwd-2026-v1-0.pdf", "note": "'A reference value here is 70 %.' Used as a benchmark line for material recovery."}, {"id": "validation_reuse_vs_recycling", "parameter": "Published reduction of net GWP, direct reuse vs recycling (aluminium portal-frame tent)", "value": -0.22, "low": null, "high": null, "unit": "share", "type": "literature", "used_in_model": false, "quality": 4, "source": "Skejic, Antic, Carevic, Gkantou, Buildings 16(13):2610 (DOI 10.3390/buildings16132610)", "year": "2026", "url": "https://www.citedrive.com/en/discovery/reuse-of-aluminium-structural-components-in-circular-construction-a-life-cycle-assessment-of-a-portal-frame-tent-structure/", "note": "'Direct reuse lowers the net global warming potential by about 22 % relative to recycling.' Different system (EN 15804, modules A-D), so used only as a plausibility check."}, {"id": "context_stand_footprint", "parameter": "Footprint of a reusable zero-waste exhibition stand (context)", "value": 1.4, "low": null, "high": null, "unit": "t CO2e", "type": "literature", "used_in_model": false, "quality": 2, "source": "ISLA, 'Measuring our reusable, zero waste exhibition stand' (company blog)", "year": "2024", "url": "https://weareisla.co.uk/2024/08/20/measuring-our-reusable-zero-waste-exhibition-stand/", "note": "1.4 tonnes CO2e from production to arrival at the event. Context only; not used in the model."}], "designs": [{"design": "A", "name": "Welded frame panel", "mass_kg": 14.0, "repairability": 0.3, "fab_factor": 1.0, "cost_factor": 0.85, "damage_mult": 1.0, "technical_lifetime_events": 15, "disassembly": 0.3, "note": "Design archetype (assumed): cheap, hard to repair"}, {"design": "B", "name": "Screwed modular panel", "mass_kg": 12.0, "repairability": 0.9, "fab_factor": 1.15, "cost_factor": 1.1, "damage_mult": 0.9, "technical_lifetime_events": 40, "disassembly": 0.9, "note": "Design archetype (assumed): bolted joints, replaceable parts"}, {"design": "C", "name": "Clip-fit lightweight panel", "mass_kg": 8.5, "repairability": 0.55, "fab_factor": 1.05, "cost_factor": 1.0, "damage_mult": 1.3, "technical_lifetime_events": 20, "disassembly": 0.6, "note": "Design archetype (assumed): light but more fragile"}], "strategies": [{"strategy": "reuse", "label": "Direct reuse", "family": "reuse", "feasibility_base": 0.85, "clean_kwh_per_kg": 0.05, "repair": 0, "reprocess": 0, "damage_factor": 1.0, "labour_h": 0.05, "note": "Inspect, clean, redeploy"}, {"strategy": "repair", "label": "Repair and reuse", "family": "reuse", "feasibility_base": 0.75, "clean_kwh_per_kg": 0.05, "repair": 1, "reprocess": 0, "damage_factor": 1.0, "labour_h": 0.4, "note": "Damaged repairable panels are fixed, others scrapped"}, {"strategy": "reprocessing", "label": "Reprocessing", "family": "reuse", "feasibility_base": 0.65, "clean_kwh_per_kg": 0.05, "repair": 0, "reprocess": 1, "damage_factor": 0.6, "labour_h": 0.25, "note": "Strip and re-finish each time; fewer cumulative damage losses (assumed)"}, {"strategy": "recycling", "label": "Recycling", "family": "single", "feasibility_base": 0.9, "clean_kwh_per_kg": 0.0, "repair": 0, "reprocess": 0, "damage_factor": 1.0, "labour_h": 0.0, "note": "Single use then remelting"}, {"strategy": "disposal", "label": "Disposal", "family": "single", "feasibility_base": 1.0, "clean_kwh_per_kg": 0.0, "repair": 0, "reprocess": 0, "damage_factor": 1.0, "labour_h": 0.0, "note": "Single use then waste-to-energy"}], "bms": [{"name": "sale", "kind": "business_model", "label": "Sale", "redeploy": 0.7, "margin": 0.0, "damage_mult": 1.0, "note": "Owner decides whether to redeploy (assumed redeployment probability per event)"}, {"name": "rental", "kind": "business_model", "label": "Rental", "redeploy": 0.95, "margin": 0.2, "damage_mult": 1.0, "note": "Provider retains ownership and collects panels (assumed)"}, {"name": "paas", "kind": "business_model", "label": "Product-as-a-service", "redeploy": 0.98, "margin": 0.25, "damage_mult": 0.85, "note": "Provider maintains panels; fewer handling losses (assumed)"}]};
+// JavaScript port of src/cirdesign/model.py, recommend.py and parts of analysis.py.
+// Functional unit: one use of one panel at one exhibition event.
+const STRATS = ["reuse", "repair", "reprocessing", "recycling", "disposal"];
+const LABELS = { reuse: "Direct reuse", repair: "Repair and reuse", reprocessing: "Reprocessing", recycling: "Recycling", disposal: "Disposal" };
+const WEIGHTS = { environment: 0.5, circularity: 0.25, economics: 0.15, feasibility: 0.1 };
+
+function makeModel(D) {
+  const byKey = (rows, k) => Object.fromEntries(rows.map(r => [r[k], r]));
+  const designs = byKey(D.designs, "design"), strategies = byKey(D.strategies, "strategy"), bms = byKey(D.bms, "name");
+  const central = {}, ranges = {};
+  for (const s of D.sources) {
+    if (!s.used_in_model) continue;
+    central[s.id] = +s.value;
+    if (s.low != null && s.high != null && s.low !== s.high) ranges[s.id] = [+s.low, +s.value, +s.high];
+  }
+
+  function expectedUses(n, p) {
+    n = Math.max(Math.round(n), 1);
+    return p <= 1e-12 ? n : (1 - Math.pow(1 - p, n)) / p;
+  }
+  const creditMass = (m, y, rc, credit) => credit === "cut_off" ? 0 : m * Math.max(y - rc, 0);
+
+  function evaluate(c, P) {
+    const d = designs[c.design], st = strategies[c.strategy], bm = bms[c.business_model];
+    const m = d.mass_kg, rc = P.recycled_content;
+    const efMix = (1 - rc) * P.ef_primary + rc * P.ef_secondary;
+    const legEf = P.transport_ef / P.transport_load_factor;
+    const leg = km => m / 1000 * km * legEf, legCost = km => m / 1000 * km * P.transport_cost;
+    const priceKg = P.lme_price_usd_t * P.usd_eur / 1000;
+    const production = m * efMix + m * P.e_fab * d.fab_factor * P.grid_ef;
+    const panelCost = m * (priceKg + P.manuf_cost * d.cost_factor);
+    const recov = P.collection_rate * P.melt_yield, delta = P.ef_primary - P.ef_secondary, grid = P.grid_ef;
+    const single = st.family === "single";
+    let U, N, pLoss, perEvent, perEventCost, y, eol, credit, eolCost, inv;
+    let clean = 0, maint = 0, repairE = 0, repairMat = 0, repairEvents = 0;
+    if (single) {
+      U = 1; N = 1; pLoss = 1;
+      perEvent = leg(c.event_km);
+      perEventCost = legCost(c.event_km) + P.handling_cost;
+      if (c.strategy === "recycling") {
+        y = recov; eol = leg(c.eol_km) + m * P.sort_energy * grid;
+        eolCost = legCost(c.eol_km) - m * y * priceKg * P.scrap_price_ratio;
+      } else {
+        y = P.disposal_recovery; eol = leg(c.eol_km) + m * P.disposal_ef;
+        eolCost = legCost(c.eol_km) + m * P.gate_fee;
+      }
+      credit = creditMass(m, y, rc, c.credit) * delta;
+    } else {
+      N = Math.min(Math.round(c.n_uses), d.technical_lifetime_events);
+      const dmg = P.damage_rate * d.damage_mult * bm.damage_mult * st.damage_factor;
+      const lossDmg = st.repair ? dmg * (1 - d.repairability) : dmg;
+      pLoss = 1 - (1 - lossDmg) * bm.redeploy;
+      U = expectedUses(N, pLoss);
+      repairEvents = st.repair ? dmg * d.repairability : 0;
+      clean = m * P.e_clean * grid;
+      maint = m * P.e_reprocess * grid * st.reprocess;
+      repairE = repairEvents * m * P.e_repair * grid;
+      repairMat = repairEvents * m * P.repair_share * efMix;
+      perEvent = 2 * leg(c.event_km) + clean + maint + repairE + repairMat;
+      let labour = st.labour_h * P.labour_rate * (st.repair ? repairEvents : 1);
+      if (st.repair) labour += 0.05 * P.labour_rate;
+      const repairMatCost = repairEvents * P.repair_share * m * (priceKg + P.manuf_cost * d.cost_factor);
+      perEventCost = 2 * legCost(c.event_km) + P.handling_cost + P.storage_cost + labour + repairMatCost;
+      y = recov; eol = leg(c.eol_km) + m * P.sort_energy * grid;
+      credit = creditMass(m, y, rc, c.credit) * delta;
+      eolCost = legCost(c.eol_km) - m * y * priceKg * P.scrap_price_ratio;
+    }
+    const total = production + U * perEvent + eol - credit;
+    const totalCost = panelCost + U * perEventCost + eolCost;
+    const cm = creditMass(m, y, rc, c.credit);
+    const virgin = Math.max(m * (1 - rc) - cm, 0);
+    const V = m * (1 - rc), W = m * (1 - y);
+    const mci = Math.max(0, 1 - (V + W) / (2 * m) * 0.9 / Math.max(U, 1));
+    const suit = single ? 1 : (st.repair ? 0.5 + 0.5 * d.repairability : 0.5 + 0.5 * d.disassembly);
+    const dist = Math.max(0, 1 - c.event_km / 2000);
+    const org = single ? 1 : 0.6 + 0.4 * bm.redeploy;
+    const legs = single ? 1 : 2;
+    const tkmEvents = U * legs * m / 1000 * c.event_km;
+    inv = [ // [stage, flow, unit, amount per life, kg CO2e per unit]
+      ["Production", "Primary aluminium, ingot", "kg", m * (1 - rc), P.ef_primary],
+      ["Production", "Secondary aluminium", "kg", m * rc, P.ef_secondary],
+      ["Production", "Electricity, fabrication", "kWh", m * P.e_fab * d.fab_factor, grid],
+      ["Use", "Road freight, events", "t·km", tkmEvents, legEf],
+      ["Use", "Electricity, cleaning and inspection", "kWh", single ? 0 : U * m * P.e_clean, grid],
+      ["Use", "Electricity, reprocessing", "kWh", single ? 0 : U * m * P.e_reprocess * st.reprocess, grid],
+      ["Use", "Electricity, repair", "kWh", U * repairEvents * m * P.e_repair, grid],
+      ["Use", "Repair parts, primary aluminium", "kg", U * repairEvents * m * P.repair_share * (1 - rc), P.ef_primary],
+      ["Use", "Repair parts, secondary aluminium", "kg", U * repairEvents * m * P.repair_share * rc, P.ef_secondary],
+      ["End of life", "Road freight, to end of life", "t·km", m / 1000 * c.eol_km, legEf],
+      ["End of life", "Electricity, dismantling and sorting", "kWh", c.strategy === "disposal" ? 0 : m * P.sort_energy, grid],
+      ["End of life", "Waste-to-energy treatment", "kg", c.strategy === "disposal" ? m : 0, P.disposal_ef],
+      ["Credit", "Avoided primary aluminium", "kg", -cm, delta],
+    ];
+    return {
+      expected_uses: U, reuse_cycles: U - 1, planned_uses: N, p_loss: pLoss,
+      climate_per_use: total / U, cost_per_use: totalCost / U * (1 + bm.margin),
+      circularity: mci, material_recovery: y, virgin_al_per_use: virgin / U,
+      feasibility: st.feasibility_base * suit * dist * org, mass_kg: m,
+      breakdown: {
+        production: production / U,
+        transport: legs * leg(c.event_km),
+        cleaning: single ? 0 : clean + maint + repairE + repairMat,
+        eol: eol / U,
+        credit: -credit / U,
+      },
+      recovered_kg: m * y, lost_kg: m * (1 - y), virgin_in_kg: V, recycled_in_kg: m * rc,
+      inventory: inv,
+    };
+  }
+
+  function evaluateAll(ctx, P) {
+    const out = {};
+    for (const s of STRATS) out[s] = evaluate({ ...ctx, strategy: s }, P);
+    return out;
+  }
+
+  function norm(vals, higherBetter) {
+    const mn = Math.min(...vals), mx = Math.max(...vals), span = mx - mn;
+    if (span < 1e-12) return vals.map(() => 0.5);
+    return vals.map(v => { const z = (v - mn) / span; return higherBetter ? z : 1 - z; });
+  }
+
+  function score(t, w = WEIGHTS) {
+    const env = norm(STRATS.map(s => t[s].climate_per_use), false);
+    const eco = norm(STRATS.map(s => t[s].cost_per_use), false);
+    const tot = w.environment + w.circularity + w.economics + w.feasibility;
+    const out = {};
+    STRATS.forEach((s, i) => {
+      const circ = Math.min(1, Math.max(0, t[s].circularity)), feas = Math.min(1, Math.max(0, t[s].feasibility));
+      out[s] = { environment: env[i], circularity: circ, economics: eco[i], feasibility: feas,
+        score: (env[i] * w.environment + circ * w.circularity + eco[i] * w.economics + feas * w.feasibility) / (tot || 1) };
+    });
+    return out;
+  }
+
+  function ruleBased(ctx, t, sc) {
+    const rep = designs[ctx.design].repairability;
+    const reuseBest = ["reuse", "repair", "reprocessing"].reduce((a, b) => sc[b].score > sc[a].score ? b : a);
+    const cyc = t[reuseBest].reuse_cycles;
+    const trace = [
+      { rule: "R1", test: "Expected reuse cycles ≥ 3", value: cyc, threshold: 3, pass: cyc >= 3 },
+      { rule: "R2", test: "Repairability ≥ 0.70", value: rep, threshold: 0.7, pass: rep >= 0.7 },
+      { rule: "R3", test: "Event transport distance ≤ 300 km", value: ctx.event_km, threshold: 300, pass: ctx.event_km <= 300 },
+    ];
+    if (trace.every(x => x.pass)) return { rule: reuseBest, trace };
+    const gain = 1 - t[reuseBest].climate_per_use / t.recycling.climate_per_use;
+    const ok = cyc >= 1.5 && gain >= 0.15;
+    trace.push({ rule: "R4", test: "Fallback: reuse ≥ 15 % lower climate than recycling and ≥ 1.5 cycles", value: gain, threshold: 0.15, pass: ok, pct: true });
+    if (ok) return { rule: reuseBest, trace };
+    return { rule: t.recycling.climate_per_use < t.disposal.climate_per_use ? "recycling" : "disposal", trace };
+  }
+
+  function recommend(ctx, P, w) {
+    const t = evaluateAll(ctx, P), sc = score(t, w);
+    const best = STRATS.reduce((a, b) => sc[b].score > sc[a].score ? b : a);
+    const { rule, trace } = ruleBased(ctx, t, sc);
+    const sorted = STRATS.map(s => sc[s].score).sort((a, b) => b - a);
+    const warns = [];
+    if (rule !== best) warns.push(`The transparent rules point to ${LABELS[rule]}, the weighted score to ${LABELS[best]}: the two methods weigh trade-offs differently.`);
+    if (t[best].climate_per_use > 0 && Math.abs(sorted[0] - sorted[1]) < 0.03) warns.push("The top two options are within 0.03 score points: treat the ranking as unclear.");
+    return { t, sc, best, rule, trace, warns };
+  }
+
+  function breakEvenUses(ctx, P, strat = "reuse", nMax = 40) {
+    for (let n = 1; n <= nMax; n++) {
+      const t = evaluateAll({ ...ctx, n_uses: n }, P);
+      if (t[strat].climate_per_use < t.recycling.climate_per_use - 1e-9) return n;
+    }
+    return null;
+  }
+
+  // seeded PRNG (mulberry32) + triangular sampling
+  function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function tri(u, a, c, b) { const f = (c - a) / (b - a); return u < f ? a + Math.sqrt(u * (b - a) * (c - a)) : b - Math.sqrt((1 - u) * (b - a) * (b - c)); }
+
+  function monteCarlo(ctx, P, n = 1000, seed = 42) {
+    const r = rng(seed), out = STRATS.reduce((o, s) => (o[s] = [], o), {});
+    for (let i = 0; i < n; i++) {
+      const p = { ...P };
+      for (const [k, [lo, mo, hi]] of Object.entries(ranges)) {
+        // scale the range around the user's current value so edits carry through
+        const ratio = P[k] / mo;
+        p[k] = tri(r(), lo * ratio, P[k], hi * ratio);
+      }
+      const t = evaluateAll(ctx, p);
+      for (const s of STRATS) out[s].push(t[s].climate_per_use);
+    }
+    return out;
+  }
+
+  function tornado(ctx, P, strat = "reuse", ref = "recycling") {
+    const base = evaluateAll(ctx, P), baseGap = base[strat].climate_per_use - base[ref].climate_per_use;
+    const rows = [];
+    for (const [k, [lo, , hi]] of Object.entries(ranges)) {
+      const g = [lo, hi].map(v => { const t = evaluateAll(ctx, { ...P, [k]: v }); return t[strat].climate_per_use - t[ref].climate_per_use; });
+      rows.push({ parameter: k, low_gap: g[0], high_gap: g[1], base_gap: baseGap, swing: Math.abs(g[1] - g[0]) });
+    }
+    return rows.sort((a, b) => b.swing - a.swing);
+  }
+
+  // Full factorial grid: design x strategy x business model x planned uses x event distance (analysis.simulate_grid)
+  function simulateGrid(ctx, P, nMax = 15, kms = [50, 150, 300, 500, 700, 900]) {
+    const rows = [];
+    for (const d of Object.keys(designs)) for (const s of STRATS) for (const b of Object.keys(bms)) for (const km of kms) {
+      const single = strategies[s].family === "single";
+      for (let n = 1; n <= (single ? 1 : nMax); n++) {
+        const r = evaluate({ ...ctx, design: d, strategy: s, business_model: b, n_uses: n, event_km: km }, P);
+        rows.push({ design: d, strategy: s, business_model: b, n_uses: n, event_km: km, climate_per_use: r.climate_per_use,
+          cost_per_use: r.cost_per_use, circularity: r.circularity, feasibility: r.feasibility, expected_uses: r.expected_uses });
+      }
+    }
+    return rows;
+  }
+
+  // Non-dominated rows, minimising climate, cost and infeasibility (analysis.pareto_front)
+  function paretoFront(rows) {
+    const v = rows.map(r => [r.climate_per_use, r.cost_per_use, 1 - r.feasibility]);
+    const keep = rows.map(() => true);
+    for (let i = 0; i < rows.length; i++) {
+      if (!keep[i]) continue;
+      for (let j = 0; j < rows.length; j++) {
+        if (j !== i && v[j].every((x, k) => x <= v[i][k]) && v[j].some((x, k) => x < v[i][k])) { keep[i] = false; break; }
+      }
+    }
+    return rows.filter((_, i) => keep[i]);
+  }
+
+  // Exhaustive search with objective = w_clim*norm(climate) + w_cost*norm(cost) - w_circ*circularity (analysis.optimise)
+  function optimise(rows, wClim = 0.5, wCost = 0.25, wCirc = 0.25, top = 10) {
+    const nz = k => { const a = rows.map(r => r[k]), mn = Math.min(...a), mx = Math.max(...a); return x => (x - mn) / (mx - mn + 1e-12); };
+    const nc = nz("climate_per_use"), nk = nz("cost_per_use");
+    const g = rows.map(r => ({ ...r, objective: wClim * nc(r.climate_per_use) + wCost * nk(r.cost_per_use) - wCirc * r.circularity }))
+      .sort((a, b) => a.objective - b.objective);
+    const seen = new Set(), out = [];
+    for (const r of g) { const key = r.design + r.strategy + r.business_model; if (seen.has(key)) continue; seen.add(key); out.push(r); if (out.length === top) break; }
+    return out;
+  }
+
+  // % change in climate per use of the best reuse route vs recycling (negative = reuse better) (analysis.gap_map)
+  function gapMap(ctx, P, ns, kms) {
+    return ns.map(n => kms.map(km => {
+      const t = evaluateAll({ ...ctx, n_uses: n, event_km: km }, P);
+      return (Math.min(t.reuse.climate_per_use, t.repair.climate_per_use, t.reprocessing.climate_per_use) / t.recycling.climate_per_use - 1) * 100;
+    }));
+  }
+
+  return { simulateGrid, paretoFront, optimise, gapMap, central, ranges, designs, strategies, bms, evaluate, evaluateAll, score, recommend, breakEvenUses, monteCarlo, tornado, expectedUses };
+}
+if (typeof module !== "undefined") module.exports = { makeModel, STRATS, LABELS, WEIGHTS };
+
+</script>
+<script>
+(() => {
+const M = makeModel(DATA);
+const SC = { reuse: "--s1", repair: "--s2", reprocessing: "--s3", recycling: "--s4", disposal: "--s5" };
+const col = s => `var(${SC[s]})`;
+const DEF = { design: "B", business_model: "rental", n_uses: 6, event_km: 400, eol_km: 100, credit: "net_scrap" };
+const S = { ctx: { ...DEF }, P: { ...M.central }, w: { ...WEIGHTS }, insp: "reuse", tab: "overview" };
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2) => (Math.abs(v) < 5e-13 ? 0 : v).toLocaleString("en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const SRC = Object.fromEntries(DATA.sources.map(s => [s.id, s]));
+
+// ---------- controls
+for (const d of DATA.designs) $("design").add(new Option(`${d.design}: ${d.name}`, d.design));
+for (const b of DATA.bms) $("bm").add(new Option(b.label, b.name));
+for (const s of STRATS) $("insp").add(new Option(LABELS[s], s));
+const wl = { environment: "Environment (climate)", circularity: "Circularity", economics: "Economics (cost)", feasibility: "Feasibility" };
+$("weights").innerHTML = Object.keys(WEIGHTS).map(k => `<div class="field"><div class="row"><label for="w-${k}">${wl[k]}</label><span class="val" id="w-${k}-v"></span></div><input type="range" id="w-${k}" min="0" max="1" step="0.05"></div>`).join("");
+const pids = Object.keys(M.central);
+$("params").innerHTML = pids.map(k => { const s = SRC[k]; const lit = s.type !== "assumption";
+  return `<div class="prow"><label class="pn" for="p-${k}">${esc(s.parameter)} <span class="tag ${lit ? "lit" : "ass"}">${lit ? s.type : "assumed"}</span><br><span class="note">${esc(s.unit)}</span></label><input type="number" id="p-${k}" step="any"></div>`; }).join("");
+
+function syncInputs() {
+  const c = S.ctx;
+  $("design").value = c.design; $("bm").value = c.business_model; $("n").value = c.n_uses; $("km").value = c.event_km; $("eol").value = c.eol_km; $("insp").value = S.insp;
+  for (const k of Object.keys(S.w)) $(`w-${k}`).value = S.w[k];
+  for (const k of pids) $(`p-${k}`).value = S.P[k];
+}
+function bind(id, fn) { $(id).addEventListener("input", e => { fn(e.target.value); update(); }); }
+bind("design", v => S.ctx.design = v); bind("bm", v => S.ctx.business_model = v);
+bind("n", v => S.ctx.n_uses = +v); bind("km", v => S.ctx.event_km = +v); bind("eol", v => S.ctx.eol_km = +v);
+bind("insp", v => S.insp = v);
+for (const k of Object.keys(WEIGHTS)) bind(`w-${k}`, v => S.w[k] = +v);
+for (const k of pids) $(`p-${k}`).addEventListener("change", e => { const v = parseFloat(e.target.value); if (Number.isFinite(v) && v >= 0) S.P[k] = v; else e.target.value = S.P[k]; update(); });
+for (const b of document.querySelectorAll(".seg button")) b.addEventListener("click", () => { S.ctx.credit = b.dataset.c; update(); });
+$("reset").addEventListener("click", () => { S.ctx = { ...DEF }; S.P = { ...M.central }; S.w = { ...WEIGHTS }; S.insp = "reuse"; syncInputs(); update(); });
+for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", () => { S.tab = t.dataset.t; try { history.replaceState(null, "", "#" + S.tab); } catch (e) {} showTab(); });
+function showTab() {
+  for (const t of document.querySelectorAll(".tab")) t.setAttribute("aria-selected", t.dataset.t === S.tab);
+  for (const p of document.querySelectorAll(".panel")) p.hidden = p.dataset.p !== S.tab;
+  draw();
+}
+
+// ---------- tooltip
+const tip = $("tip");
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect(); let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+}
+const hideTip = () => tip.style.opacity = 0;
+function hover(el, html) { el.addEventListener("mousemove", e => showTip(e, typeof html === "function" ? html() : html)); el.addEventListener("mouseleave", hideTip); }
+
+// ---------- svg helpers
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, parent) { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (parent) parent.appendChild(n); return n; }
+function txt(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
+function svgIn(id, h) { const box = $(id); box.innerHTML = ""; const w = Math.max(280, box.clientWidth || 600); const s = el("svg", { viewBox: `0 0 ${w} ${h}`, width: "100%", role: "img" }, box); return { s, w, h }; }
+function ticks(lo, hi, n = 5) { const span = hi - lo || 1, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0))); const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || 10 * mag; const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10)); return out; }
+// bar path with 4px rounded data-end
+function barH(x0, x1, y, h, r = 4) { const L = Math.min(x0, x1), R = Math.max(x0, x1), w = R - L; r = Math.min(r, w, h / 2); if (x1 >= x0) return `M${L},${y}H${R - r}Q${R},${y} ${R},${y + r}V${y + h - r}Q${R},${y + h} ${R - r},${y + h}H${L}Z`; return `M${R},${y}H${L + r}Q${L},${y} ${L},${y + r}V${y + h - r}Q${L},${y + h} ${L + r},${y + h}H${R}Z`; }
+function barV(x, w, y0, y1, r = 4) { const T = Math.min(y0, y1), B = Math.max(y0, y1), h = B - T; r = Math.min(r, h, w / 2); if (y1 <= y0) return `M${x},${B}V${T + r}Q${x},${T} ${x + r},${T}H${x + w - r}Q${x + w},${T} ${x + w},${T + r}V${B}Z`; return `M${x},${T}V${B - r}Q${x},${B} ${x + r},${B}H${x + w - r}Q${x + w},${B} ${x + w},${B - r}V${T}Z`; }
+
+let R; // last result
+function update() {
+  const c = S.ctx;
+  $("nv").textContent = c.n_uses + (c.n_uses > M.designs[c.design].technical_lifetime_events ? ` (capped at ${M.designs[c.design].technical_lifetime_events})` : "");
+  $("kmv").textContent = c.event_km; $("eolv").textContent = c.eol_km;
+  for (const b of document.querySelectorAll(".seg button")) b.setAttribute("aria-pressed", b.dataset.c === c.credit);
+  for (const k of Object.keys(S.w)) $(`w-${k}-v`).textContent = S.w[k].toFixed(2);
+  let nch = 0; for (const k of pids) { const ch = Math.abs(S.P[k] - M.central[k]) > 1e-12; nch += ch; $(`p-${k}`).classList.toggle("changed", ch); }
+  $("nchanged").textContent = nch;
+  R = M.recommend(c, S.P, S.w);
+  R.be = M.breakEvenUses(c, S.P, ["reuse", "repair", "reprocessing"].includes(S.insp) ? S.insp : "reuse");
+  renderSummary(); draw();
+}
+
+function renderSummary() {
+  const { t, sc, best, rule, trace, warns } = R, s = S.insp, r = t[s], rec = t.recycling;
+  const pct = (a, b) => (a / b - 1) * 100;
+  const dc = pct(r.climate_per_use, rec.climate_per_use), dk = pct(r.cost_per_use, rec.cost_per_use);
+  const delta = (d, unit) => s === "recycling" ? `<span>reference strategy</span>` : `<span class="${d <= 0 ? "delta-good" : "delta-bad"}">${d > 0 ? "+" : "−"}${fmt(Math.abs(d), 0)} %</span> vs recycling (${unit})`;
+  $("kpis").innerHTML = `
+    <div class="kpi"><span class="k">Climate impact per use</span><span class="v">${fmt(r.climate_per_use, 1)}<small>kg CO₂e</small></span><span class="d">${delta(dc, fmt(rec.climate_per_use, 1))}</span></div>
+    <div class="kpi"><span class="k">Circularity score (MCI)</span><span class="v">${fmt(r.circularity, 2)}</span><span class="d">0 = linear, 1 = fully circular</span></div>
+    <div class="kpi"><span class="k">Cost per use</span><span class="v">${fmt(r.cost_per_use, 0)}<small>EUR</small></span><span class="d">${delta(dk, fmt(rec.cost_per_use, 0) + " EUR")}</span></div>
+    <div class="kpi"><span class="k">Expected events per panel</span><span class="v">${fmt(r.expected_uses, 1)}</span><span class="d">${fmt(r.reuse_cycles, 1)} reuse cycles · ${LABELS[s]}</span></div>`;
+  $("best").textContent = LABELS[best];
+  const b = t[best];
+  const reasons = [`${LABELS[best]} has the highest weighted score (${fmt(sc[best].score)}).`,
+    `Climate impact is ${fmt(b.climate_per_use, 1)} kg CO₂e per use, against ${fmt(rec.climate_per_use, 1)} for recycling.`,
+    `Cost per use is ${fmt(b.cost_per_use, 0)} EUR, against ${fmt(rec.cost_per_use, 0)} EUR for recycling.`];
+  if (b.expected_uses > 1.05) reasons.push(`It serves ${fmt(b.expected_uses, 1)} events per panel on average (${fmt(b.reuse_cycles, 1)} reuse cycles).`);
+  if (R.be) reasons.push(`${LABELS[["reuse", "repair", "reprocessing"].includes(s) ? s : "reuse"]} beats recycling from ${R.be} planned use${R.be > 1 ? "s" : ""}.`);
+  $("reasons").innerHTML = reasons.map(x => `<li>${esc(x)}</li>`).join("");
+  $("warns").innerHTML = warns.map(w => `<div>⚠ ${esc(w)}</div>`).join("");
+  $("rulepick").textContent = "Rules pick: " + LABELS[rule];
+  $("rules").innerHTML = trace.map(x => `<tr><td>${x.rule}</td><td>${esc(x.test)}</td><td class="val">${x.pct ? fmt(x.value * 100, 0) + " %" : fmt(x.value, 2)}</td><td class="${x.pass ? "pass" : "fail"}">${x.pass ? "✓ pass" : "✕ fail"}</td></tr>`).join("");
+  $("wsub").textContent = `${Math.round(S.w.environment * 100)} % environment, ${Math.round(S.w.circularity * 100)} % circularity, ${Math.round(S.w.economics * 100)} % economics, ${Math.round(S.w.feasibility * 100)} % feasibility (relative weights)`;
+}
+
+function draw() {
+  if (!R) return;
+  if (S.tab === "overview") { drawScore(); drawCrit(); drawStack(); drawFlow(); tableKpi(); }
+  if (S.tab === "scenario") { drawUses(); drawKm(); drawGap(); }
+  if (S.tab === "uncertainty") { drawMC(); drawTor(); }
+  if (S.tab === "optimiser") { drawGrid(); }
+  if (S.tab === "inventory") tableInv();
+  if (S.tab === "methods") tableSrc();
+}
+
+function drawScore() {
+  const { sc, best } = R, rowH = 34, { s, w } = svgIn("c-score", STRATS.length * rowH + 30);
+  const L = 132, Rr = 44, x = v => L + v * (w - L - Rr);
+  for (const v of [0, .25, .5, .75, 1]) { el("line", { x1: x(v), x2: x(v), y1: 0, y2: STRATS.length * rowH, class: "gl" }, s); txt(s, x(v), STRATS.length * rowH + 16, v, { "text-anchor": "middle" }); }
+  STRATS.forEach((k, i) => {
+    const y = i * rowH + 7, v = sc[k].score;
+    txt(s, L - 10, y + 14, LABELS[k] + (k === best ? " ✓" : ""), { "text-anchor": "end", class: k === best ? "lbl" : "" });
+    const p = el("path", { d: barH(x(0), x(v), y, rowH - 14), fill: col(k) }, s);
+    txt(s, x(v) + 6, y + 14, fmt(v), { class: "lbl" });
+    const hit = el("rect", { x: 0, y: i * rowH, width: w, height: rowH, fill: "transparent" }, s);
+    hover(hit, `<b>${LABELS[k]}</b><br>Score ${fmt(v, 3)}<br>Environment ${fmt(sc[k].environment)} · Circularity ${fmt(sc[k].circularity)}<br>Economics ${fmt(sc[k].economics)} · Feasibility ${fmt(sc[k].feasibility)}`);
+  });
+}
+
+function drawCrit() {
+  const { sc } = R, crit = [["environment", "Climate"], ["circularity", "Circularity"], ["economics", "Cost"], ["feasibility", "Feasibility"]];
+  const rowH = 30, gH = STRATS.length * 0 + rowH, { s, w } = svgIn("c-crit", crit.length * 58 + 26);
+  const L = 92, x = v => L + v * (w - L - 16);
+  for (const v of [0, .5, 1]) { el("line", { x1: x(v), x2: x(v), y1: 0, y2: crit.length * 58, class: "gl" }, s); txt(s, x(v), crit.length * 58 + 16, v, { "text-anchor": "middle" }); }
+  crit.forEach(([k, lab], i) => {
+    const y0 = i * 58;
+    txt(s, L - 10, y0 + 31, lab, { "text-anchor": "end", class: "lbl" });
+    el("line", { x1: x(0), x2: x(1), y1: y0 + 27, y2: y0 + 27, class: "ax" }, s);
+    STRATS.forEach((st, j) => {
+      const cx = x(sc[st][k]), cy = y0 + 9 + j * 9;
+      const c = el("circle", { cx, cy, r: 5, fill: col(st), stroke: "var(--panel)", "stroke-width": 2 }, s);
+      hover(c, `<b>${LABELS[st]}</b><br>${lab}: ${fmt(sc[st][k], 3)}`);
+    });
+  });
+  const lg = document.createElement("div"); lg.className = "legend"; lg.innerHTML = STRATS.map(k => `<span><i style="background:${col(k)}"></i>${LABELS[k]}</span>`).join(""); $("c-crit").appendChild(lg);
+}
+
+const STAGES = [["production", "Panel production", "--st-prod"], ["transport", "Transport (events)", "--st-trans"], ["cleaning", "Cleaning, repair, reprocessing", "--st-clean"], ["eol", "End-of-life processes", "--st-eol"], ["credit", "Recycling credit", "--st-credit"]];
+function drawStack() {
+  const { t } = R;
+  $("lg-stage").innerHTML = STAGES.map(([, l, c]) => `<span><i style="background:var(${c})"></i>${l}</span>`).join("") + `<span><i class="dot"></i>Net total</span>`;
+  const { s, w, h } = svgIn("c-stack", 300);
+  const pos = STRATS.map(k => STAGES.filter(st => st[0] !== "credit").reduce((a, st) => a + Math.max(0, t[k].breakdown[st[0]]), 0));
+  const neg = STRATS.map(k => t[k].breakdown.credit);
+  const hi = Math.max(...pos) * 1.08, lo = Math.min(0, ...neg) * 1.08;
+  const T = 16, B = h - 30, Lm = 44, y = v => T + (hi - v) / (hi - lo) * (B - T);
+  for (const v of ticks(lo, hi, 6)) { el("line", { x1: Lm, x2: w, y1: y(v), y2: y(v), class: v === 0 ? "ax" : "gl" }, s); txt(s, Lm - 6, y(v) + 4, v, { "text-anchor": "end" }); }
+  const bw = (w - Lm) / STRATS.length, barW = Math.min(64, bw * 0.55);
+  STRATS.forEach((k, i) => {
+    const x0 = Lm + i * bw + (bw - barW) / 2, bd = t[k].breakdown;
+    let acc = 0; const segs = STAGES.filter(st => st[0] !== "credit" && bd[st[0]] > 1e-9);
+    segs.forEach(([key, lab, c], j) => {
+      const a = y(acc), b2 = y(acc + bd[key]); acc += bd[key];
+      const top = j === segs.length - 1;
+      const p = el("path", { d: top ? barV(x0, barW, a, b2) : `M${x0},${b2}h${barW}V${a}h${-barW}Z`, fill: `var(${c})`, stroke: "var(--panel)", "stroke-width": 1 }, s);
+      hover(p, `<b>${LABELS[k]}</b><br>${lab}: ${fmt(bd[key])} kg CO₂e/use`);
+    });
+    if (bd.credit < -1e-9) { const p = el("path", { d: barV(x0, barW, y(0), y(bd.credit)), fill: "var(--st-credit)" }, s); hover(p, `<b>${LABELS[k]}</b><br>Recycling credit: ${fmt(bd.credit)} kg CO₂e/use`); }
+    const net = t[k].climate_per_use;
+    const dot = el("circle", { cx: x0 + barW / 2, cy: y(net), r: 5, fill: "var(--fg)", stroke: "var(--panel)", "stroke-width": 2 }, s);
+    hover(dot, `<b>${LABELS[k]}</b><br>Net total: ${fmt(net)} kg CO₂e/use`);
+    txt(s, x0 + barW / 2, y(acc) - 6, fmt(net, 1), { "text-anchor": "middle", class: "lbl" });
+    txt(s, Lm + i * bw + bw / 2, h - 10, bw < 100 ? { reuse: "Reuse", repair: "Repair", reprocessing: "Reprocess", recycling: "Recycle", disposal: "Dispose" }[k] : LABELS[k], { "text-anchor": "middle" });
+  });
+}
+
+function drawFlow() {
+  const r = R.t[S.insp], m = r.mass_kg;
+  $("flowsub").textContent = `${LABELS[S.insp]}: ${fmt(r.expected_uses, 1)} events per panel, mass in kg, recovery yield ${fmt(r.material_recovery * 100, 0)} %`;
+  const { s, w, h } = svgIn("c-flow", 260);
+  const T = 20, B = h - 20, sc = (B - T - 12) / m, nw = 12;
+  const cols = [20, w * 0.36, w * 0.64, w - 20 - nw];
+  const node = (x, y, hh, c, lab, anchor = "start", dx = 16) => { el("rect", { x, y, width: nw, height: Math.max(hh, 1), rx: 2, fill: c }, s); if (lab) txt(s, anchor === "end" ? x - 6 : x + dx, y + hh / 2 + 4, lab, { "text-anchor": anchor }); };
+  const link = (x0, y0, h0, x1, y1, c, tipHtml) => { const mx = (x0 + x1) / 2; const p = el("path", { d: `M${x0},${y0}C${mx},${y0} ${mx},${y1} ${x1},${y1}V${y1 + h0}C${mx},${y1 + h0} ${mx},${y0 + h0} ${x0},${y0 + h0}Z`, fill: c, opacity: .35 }, s); hover(p, tipHtml); };
+  const vH = r.virgin_in_kg * sc, rH = r.recycled_in_kg * sc, pH = m * sc;
+  const recH = r.recovered_kg * sc, lostH = r.lost_kg * sc;
+  // inputs
+  node(cols[0], T, vH, "var(--st-prod)"); node(cols[0], T + vH + 12, rH, "var(--st-credit)");
+  txt(s, cols[0] + 16, T + vH / 2 + 4, `Primary Al ${fmt(r.virgin_in_kg, 1)} kg`);
+  txt(s, cols[0] + 16, T + vH + 12 + rH / 2 + 4, `Recycled Al ${fmt(r.recycled_in_kg, 1)} kg`);
+  const py = T + 6;
+  link(cols[0] + nw, T, vH, cols[1], py, "var(--st-prod)", `Primary aluminium into panel: ${fmt(r.virgin_in_kg)} kg`);
+  link(cols[0] + nw, T + vH + 12, rH, cols[1], py + vH, "var(--st-credit)", `Recycled aluminium into panel: ${fmt(r.recycled_in_kg)} kg`);
+  node(cols[1], py, pH, "var(--fg2)");
+  link(cols[1] + nw, py, pH, cols[2], py, "var(--fg2)", `Panel in service: ${fmt(m)} kg over ${fmt(r.expected_uses, 1)} uses`);
+  node(cols[2], py, pH, col(S.insp));
+  txt(s, (cols[1] + cols[2]) / 2 + nw / 2, py + pH / 2 + 4, `Use: ${fmt(r.expected_uses, 1)} events`, { "text-anchor": "middle", class: "lbl" });
+  const ry = T, ly = T + recH + 18;
+  link(cols[2] + nw, py, recH, cols[3], ry, "var(--st-credit)", `Recovered to remelting: ${fmt(r.recovered_kg)} kg`);
+  link(cols[2] + nw, py + recH, lostH, cols[3], ly, "var(--bad)", `Lost (slag, residues, uncollected): ${fmt(r.lost_kg)} kg`);
+  node(cols[3], ry, recH, "var(--st-credit)", `Recovered ${fmt(r.recovered_kg, 1)} kg`, "end");
+  node(cols[3], ly, lostH, "var(--bad)", `Lost ${fmt(r.lost_kg, 1)} kg`, "end");
+}
+
+function tableKpi() {
+  const { t, sc, best } = R;
+  const head = ["Strategy", "Events / panel", "Reuse cycles", "Climate kg CO₂e/use", "Cost EUR/use", "Circularity", "Recovery", "Virgin Al kg/use", "Feasibility", "Score"];
+  $("t-kpi").innerHTML = `<thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>` + STRATS.map(k => { const r = t[k];
+    return `<tr class="${k === best ? "best" : ""}"><td><span class="sw" style="background:${col(k)}"></span>${LABELS[k]}</td><td>${fmt(r.expected_uses)}</td><td>${fmt(r.reuse_cycles)}</td><td>${fmt(r.climate_per_use)}</td><td>${fmt(r.cost_per_use)}</td><td>${fmt(r.circularity)}</td><td>${fmt(r.material_recovery * 100, 1)} %</td><td>${fmt(r.virgin_al_per_use, 3)}</td><td>${fmt(r.feasibility)}</td><td>${fmt(sc[k].score, 3)}</td></tr>`; }).join("") + "</tbody>";
+}
+
+function lineChart(id, lgId, xs, series, xLabel, marker, unit) {
+  $(lgId).innerHTML = STRATS.map(k => `<span><i style="background:${col(k)}"></i>${LABELS[k]}</span>`).join("");
+  const { s, w, h } = svgIn(id, 320);
+  const all = series.flatMap(x => x.v), hi = Math.max(...all) * 1.05, lo = Math.min(0, ...all);
+  const Lm = 44, Rm = 104, T = 10, B = h - 38;
+  const x = v => Lm + (v - xs[0]) / (xs[xs.length - 1] - xs[0]) * (w - Lm - Rm), y = v => T + (hi - v) / (hi - lo) * (B - T);
+  for (const v of ticks(lo, hi, 6)) { el("line", { x1: Lm, x2: w - Rm, y1: y(v), y2: y(v), class: v === 0 ? "ax" : "gl" }, s); txt(s, Lm - 6, y(v) + 4, v, { "text-anchor": "end" }); }
+  for (const v of ticks(xs[0], xs[xs.length - 1], 8)) txt(s, x(v), B + 16, v, { "text-anchor": "middle" });
+  txt(s, (Lm + w - Rm) / 2, h - 4, xLabel, { "text-anchor": "middle" });
+  txt(s, 4, T + 2, unit, { "text-anchor": "start", "font-size": 10.5 });
+  if (marker != null) { el("line", { x1: x(marker.x), x2: x(marker.x), y1: T, y2: B, stroke: "var(--fg2)", "stroke-dasharray": "4 3" }, s); txt(s, x(marker.x) + 4, T + 10, marker.label, { class: "lbl" }); }
+  const ends = [];
+  series.forEach(({ k, v }) => {
+    el("path", { d: v.map((yv, i) => `${i ? "L" : "M"}${x(xs[i])},${y(yv)}`).join(""), fill: "none", stroke: col(k), "stroke-width": 2, "stroke-linejoin": "round" }, s);
+    ends.push({ k, y: y(v[v.length - 1]) });
+  });
+  ends.sort((a, b) => a.y - b.y); for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 13);
+  ends.forEach(e => txt(s, w - Rm + 6, e.y + 4, LABELS[e.k], { fill: "var(--fg2)" }));
+  // crosshair
+  const cross = el("line", { y1: T, y2: B, stroke: "var(--fg2)", opacity: 0 }, s);
+  const dots = series.map(({ k }) => el("circle", { r: 4, fill: col(k), stroke: "var(--panel)", "stroke-width": 2, opacity: 0 }, s));
+  const hit = el("rect", { x: Lm, y: T, width: w - Lm - Rm, height: B - T, fill: "transparent" }, s);
+  hit.addEventListener("mousemove", e => {
+    const bb = s.getBoundingClientRect(), px = (e.clientX - bb.left) * (w / bb.width);
+    let i = 0, best = 1e9; xs.forEach((xv, j) => { const d = Math.abs(x(xv) - px); if (d < best) { best = d; i = j; } });
+    cross.setAttribute("x1", x(xs[i])); cross.setAttribute("x2", x(xs[i])); cross.setAttribute("opacity", .5);
+    series.forEach(({ v }, j) => { dots[j].setAttribute("cx", x(xs[i])); dots[j].setAttribute("cy", y(v[i])); dots[j].setAttribute("opacity", 1); });
+    const rows = series.map(({ k, v }) => ({ k, v: v[i] })).sort((a, b) => a.v - b.v);
+    showTip(e, `<b>${xLabel}: ${xs[i]}</b><br>` + rows.map(r => `${LABELS[r.k]}: ${fmt(r.v)}`).join("<br>"));
+  });
+  hit.addEventListener("mouseleave", () => { hideTip(); cross.setAttribute("opacity", 0); dots.forEach(d => d.setAttribute("opacity", 0)); });
+}
+
+function drawUses() {
+  const xs = Array.from({ length: 20 }, (_, i) => i + 1);
+  const per = xs.map(n => M.evaluateAll({ ...S.ctx, n_uses: n }, S.P));
+  const be = R.be;
+  $("usesub").textContent = `At ${S.ctx.event_km} km per trip. ` + (be ? `Direct reuse${S.insp !== "reuse" && ["repair", "reprocessing"].includes(S.insp) ? " (" + LABELS[S.insp] + ")" : ""} has lower impact than recycling from ${be} planned use${be > 1 ? "s" : ""}.` : "Reuse does not beat recycling within 40 planned uses under these inputs.");
+  lineChart("c-uses", "lg-uses", xs, STRATS.map(k => ({ k, v: per.map(t => t[k].climate_per_use) })), "Planned uses per panel", { x: Math.min(S.ctx.n_uses, 20), label: "current" }, "kg CO₂e / use");
+}
+function drawKm() {
+  const xs = Array.from({ length: 31 }, (_, i) => i * 50);
+  const per = xs.map(km => M.evaluateAll({ ...S.ctx, event_km: km }, S.P));
+  lineChart("c-km", "lg-km", xs, STRATS.map(k => ({ k, v: per.map(t => t[k].climate_per_use) })), "Distance depot to event (km)", { x: Math.min(S.ctx.event_km, 1500), label: "current" }, "kg CO₂e / use");
+}
+
+function drawGap() {
+  const ns = Array.from({ length: 15 }, (_, i) => i + 1), kms = Array.from({ length: 16 }, (_, i) => i * 100);
+  const g = M.gapMap(S.ctx, S.P, ns, kms), flat = g.flat(), lim = Math.max(10, ...flat.map(Math.abs));
+  const color = v => { const t = Math.min(1, Math.abs(v) / lim); return `color-mix(in oklab, var(${v < 0 ? "--div-neg" : "--div-pos"}) ${Math.round(t * 100)}%, var(--div-mid))`; };
+  $("lg-gap").innerHTML = `<span><i style="background:var(--div-neg)"></i>−${fmt(lim, 0)} % (reuse better)</span><span><i style="background:var(--div-mid);outline:1px solid var(--line)"></i>0 %</span><span><i style="background:var(--div-pos)"></i>+${fmt(lim, 0)} % (recycling better)</span><span>Outlined cell = current inputs</span>`;
+  const { s, w } = svgIn("c-gap", 15 * 22 + 46);
+  const L = 44, T = 4, cw = (w - L - 8) / kms.length, ch = 22;
+  ns.forEach((n, i) => {
+    txt(s, L - 8, T + i * ch + ch / 2 + 4, n, { "text-anchor": "end" });
+    kms.forEach((km, j) => {
+      const v = g[i][j];
+      const r = el("rect", { x: L + j * cw + 1, y: T + i * ch + 1, width: cw - 2, height: ch - 2, rx: 2, fill: color(v) }, s);
+      if (cw > 34) txt(s, L + j * cw + cw / 2, T + i * ch + ch / 2 + 4, fmt(v, 0), { "text-anchor": "middle", "font-size": 10, fill: Math.abs(v) / lim > .55 ? "#fff" : "var(--fg2)" });
+      hover(r, `<b>${n} planned use${n > 1 ? "s" : ""}, ${km} km</b><br>Best reuse route vs recycling: ${v > 0 ? "+" : ""}${fmt(v, 1)} %`);
+    });
+  });
+  kms.forEach((km, j) => { if (j % (cw < 34 ? 3 : 1) === 0) txt(s, L + j * cw + cw / 2, T + 15 * ch + 14, km, { "text-anchor": "middle" }); });
+  txt(s, L + (w - L) / 2, T + 15 * ch + 32, "Distance depot to event (km)", { "text-anchor": "middle" });
+  txt(s, 2, T + 15 * ch + 32, "uses ↓", {});
+  const ci = Math.min(Math.max(S.ctx.n_uses, 1), 15) - 1, cj = Math.round(Math.min(S.ctx.event_km, 1500) / 100);
+  el("rect", { x: L + cj * cw, y: T + ci * ch, width: cw, height: ch, fill: "none", stroke: "var(--fg)", "stroke-width": 2, rx: 3 }, s);
+}
+
+let gridCache = { key: "", g: null };
+function drawGrid() {
+  const key = JSON.stringify([S.ctx.eol_km, S.ctx.credit, S.P]);
+  if (gridCache.key !== key) { const g = M.simulateGrid(S.ctx, S.P); gridCache = { key, g, pf: M.paretoFront(g), top: M.optimise(g) }; }
+  const { g, pf, top } = gridCache;
+  $("gridsub").textContent = `${g.length.toLocaleString("en-GB")} scenarios: 3 designs × 5 strategies × 3 business models × 1–15 planned uses × 6 distances (50–900 km), at your credit method, recycler distance and parameters. Ringed points (${pf.length}) are Pareto-optimal on climate, cost and feasibility.`;
+  $("lg-grid").innerHTML = STRATS.map(k => `<span><i style="background:${col(k)}"></i>${LABELS[k]}</span>`).join("") + `<span><i class="dot" style="background:none;outline:2px solid var(--fg)"></i>Pareto front</span>`;
+  const { s, w, h } = svgIn("c-grid", 360);
+  const Lm = 52, B = h - 36, T = 10, Rm = 12;
+  const xs = g.map(r => r.climate_per_use), ys = g.map(r => r.cost_per_use);
+  const x0 = 0, x1 = Math.max(...xs) * 1.03, y0 = 0, y1 = Math.max(...ys) * 1.05;
+  const x = v => Lm + (v - x0) / (x1 - x0) * (w - Lm - Rm), y = v => T + (y1 - v) / (y1 - y0) * (B - T);
+  for (const v of ticks(x0, x1, 8)) { el("line", { x1: x(v), x2: x(v), y1: T, y2: B, class: "gl" }, s); txt(s, x(v), B + 16, v, { "text-anchor": "middle" }); }
+  for (const v of ticks(y0, y1, 6)) { el("line", { x1: Lm, x2: w - Rm, y1: y(v), y2: y(v), class: "gl" }, s); txt(s, Lm - 6, y(v) + 4, v, { "text-anchor": "end" }); }
+  txt(s, (Lm + w) / 2, h - 4, "Climate impact (kg CO₂e per use)", { "text-anchor": "middle" });
+  txt(s, 4, T + 2, "EUR / use", { "font-size": 10.5 });
+  const pts = g.map(r => [x(r.climate_per_use), y(r.cost_per_use), r]);
+  for (const k of [...STRATS].reverse()) for (const [px, py, r] of pts) if (r.strategy === k) el("circle", { cx: px, cy: py, r: 2.6, fill: col(k), opacity: .55 }, s);
+  for (const r of pf) el("circle", { cx: x(r.climate_per_use), cy: y(r.cost_per_use), r: 6, fill: "none", stroke: "var(--fg)", "stroke-width": 2 }, s);
+  const ring = el("circle", { r: 6, fill: "none", stroke: "var(--fg)", "stroke-width": 1.5, opacity: 0 }, s);
+  const hit = el("rect", { x: Lm, y: T, width: w - Lm - Rm, height: B - T, fill: "transparent" }, s);
+  const bmL = Object.fromEntries(DATA.bms.map(b => [b.name, b.label]));
+  hit.addEventListener("mousemove", e => {
+    const bb = s.getBoundingClientRect(), px = (e.clientX - bb.left) * (w / bb.width), py = (e.clientY - bb.top) * (h / bb.height);
+    let best = null, bd = 400; for (const p of pts) { const d = (p[0] - px) ** 2 + (p[1] - py) ** 2; if (d < bd) { bd = d; best = p; } }
+    if (!best) { hideTip(); ring.setAttribute("opacity", 0); return; }
+    const r = best[2]; ring.setAttribute("cx", best[0]); ring.setAttribute("cy", best[1]); ring.setAttribute("opacity", 1);
+    showTip(e, `<b>${LABELS[r.strategy]}</b> · design ${r.design} · ${bmL[r.business_model]}<br>${r.n_uses} planned use${r.n_uses > 1 ? "s" : ""}, ${r.event_km} km<br>Climate ${fmt(r.climate_per_use)} kg CO₂e/use<br>Cost ${fmt(r.cost_per_use)} EUR/use · Feasibility ${fmt(r.feasibility)}`);
+  });
+  hit.addEventListener("mouseleave", () => { hideTip(); ring.setAttribute("opacity", 0); });
+  $("t-opt").innerHTML = `<thead><tr><th>#</th><th>Design</th><th>Strategy</th><th>Business model</th><th>Planned uses</th><th>Distance km</th><th>Climate kg CO₂e/use</th><th>Cost EUR/use</th><th>Circularity</th><th>Feasibility</th><th>Objective</th></tr></thead><tbody>` +
+    top.map((r, i) => `<tr class="${i === 0 ? "best" : ""}"><td>${i + 1}</td><td>${r.design}</td><td class="l"><span class="sw" style="background:${col(r.strategy)}"></span>${LABELS[r.strategy]}</td><td>${bmL[r.business_model]}</td><td>${r.n_uses}</td><td>${r.event_km}</td><td>${fmt(r.climate_per_use)}</td><td>${fmt(r.cost_per_use)}</td><td>${fmt(r.circularity)}</td><td>${fmt(r.feasibility)}</td><td>${fmt(r.objective, 3)}</td></tr>`).join("") + "</tbody>";
+}
+
+let mcCache = { key: "" , out: null };
+function drawMC() {
+  const key = JSON.stringify([S.ctx, S.P]);
+  if (mcCache.key !== key) mcCache = { key, out: M.monteCarlo(S.ctx, S.P, 1000, 42) };
+  const out = mcCache.out, n = out.reuse.length;
+  const reuseFam = ["reuse", "repair", "reprocessing"].includes(S.insp) ? S.insp : "reuse";
+  const p = out[reuseFam].filter((v, i) => v < out.recycling[i]).length / n;
+  const q = (a, f) => { const b = [...a].sort((x, y) => x - y); const i = (b.length - 1) * f, lo = Math.floor(i), hi = Math.ceil(i); return b[lo] + (b[hi] - b[lo]) * (i - lo); };
+  const st = STRATS.map(k => ({ k, p5: q(out[k], .05), p25: q(out[k], .25), p50: q(out[k], .5), p75: q(out[k], .75), p95: q(out[k], .95) }));
+  $("mcstat").innerHTML = `<div><b>${fmt(p * 100, 0)} %</b> <span>of draws: ${LABELS[reuseFam].toLowerCase()} has lower climate impact than recycling</span></div>`;
+  const rowH = 36, { s, w } = svgIn("c-mc", STRATS.length * rowH + 30);
+  const L = 132, hi = Math.max(...st.map(x => x.p95)) * 1.05, lo = Math.min(0, ...st.map(x => x.p5)), x = v => L + (v - lo) / (hi - lo) * (w - L - 20);
+  for (const v of ticks(lo, hi, 7)) { el("line", { x1: x(v), x2: x(v), y1: 0, y2: STRATS.length * rowH, class: v === 0 ? "ax" : "gl" }, s); txt(s, x(v), STRATS.length * rowH + 16, v, { "text-anchor": "middle" }); }
+  st.forEach((r, i) => {
+    const y = i * rowH + rowH / 2;
+    txt(s, L - 10, y + 4, LABELS[r.k], { "text-anchor": "end" });
+    el("line", { x1: x(r.p5), x2: x(r.p95), y1: y, y2: y, stroke: col(r.k), "stroke-width": 2 }, s);
+    el("rect", { x: x(r.p25), y: y - 9, width: Math.max(2, x(r.p75) - x(r.p25)), height: 18, rx: 3, fill: col(r.k), opacity: .85 }, s);
+    el("line", { x1: x(r.p50), x2: x(r.p50), y1: y - 11, y2: y + 11, stroke: "var(--fg)", "stroke-width": 2 }, s);
+    const hit = el("rect", { x: 0, y: i * rowH, width: w, height: rowH, fill: "transparent" }, s);
+    hover(hit, `<b>${LABELS[r.k]}</b> (kg CO₂e/use)<br>Median ${fmt(r.p50)}<br>25–75 %: ${fmt(r.p25)} – ${fmt(r.p75)}<br>5–95 %: ${fmt(r.p5)} – ${fmt(r.p95)}`);
+  });
+}
+
+function drawTor() {
+  const strat = ["reuse", "repair", "reprocessing"].includes(S.insp) ? S.insp : "reuse";
+  const rows = M.tornado(S.ctx, S.P, strat).slice(0, 10);
+  const base = rows[0].base_gap;
+  $("torh").textContent = `What drives the gap between ${LABELS[strat].toLowerCase()} and recycling`;
+  $("torsub").textContent = `Gap = ${LABELS[strat].toLowerCase()} minus recycling, kg CO₂e per use (now ${fmt(base)}; negative means reuse wins). Each parameter is set to its low and high value one at a time. Top 10 by swing.`;
+  const rowH = 28, { s, w } = svgIn("c-tor", rows.length * rowH + 30);
+  const L = Math.min(230, w * 0.42), vals = rows.flatMap(r => [r.low_gap, r.high_gap, base]);
+  const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 1, x = v => L + (v - lo + pad) / (hi - lo + 2 * pad) * (w - L - 16);
+  for (const v of ticks(lo - pad, hi + pad, 6)) { el("line", { x1: x(v), x2: x(v), y1: 0, y2: rows.length * rowH, class: v === 0 ? "ax" : "gl" }, s); txt(s, x(v), rows.length * rowH + 16, v, { "text-anchor": "middle" }); }
+  rows.forEach((r, i) => {
+    const y = i * rowH + 5, h = rowH - 10;
+    txt(s, L - 10, y + h / 2 + 4, SRC[r.parameter].parameter.length > 34 ? SRC[r.parameter].parameter.slice(0, 33) + "…" : SRC[r.parameter].parameter, { "text-anchor": "end" });
+    el("path", { d: barH(x(base), x(r.low_gap), y, h, 3), fill: "var(--s1)" }, s);
+    el("path", { d: barH(x(base), x(r.high_gap), y, h, 3), fill: "var(--s2)" }, s);
+    const [lo2, mo, hi2] = M.ranges[r.parameter], u = SRC[r.parameter].unit;
+    const hit = el("rect", { x: 0, y: i * rowH, width: w, height: rowH, fill: "transparent" }, s);
+    hover(hit, `<b>${esc(SRC[r.parameter].parameter)}</b><br>Low ${lo2} ${esc(u)} → gap ${fmt(r.low_gap)}<br>High ${hi2} ${esc(u)} → gap ${fmt(r.high_gap)}<br>Swing ${fmt(r.swing)}`);
+  });
+  el("line", { x1: x(base), x2: x(base), y1: 0, y2: rows.length * rowH, stroke: "var(--fg)", "stroke-width": 1.5 }, s);
+}
+
+function tableInv() {
+  const r = R.t[S.insp], U = r.expected_uses;
+  $("invh").textContent = `Life cycle inventory: ${LABELS[S.insp]}, design ${S.ctx.design}`;
+  let html = `<thead><tr><th>Flow</th><th>Unit</th><th>Per panel life</th><th>Per use</th><th>EF kg CO₂e/unit</th><th>kg CO₂e per use</th></tr></thead><tbody>`;
+  let stage = "", sub = 0, total = 0;
+  const flush = () => { if (stage) html += `<tr class="sec"><td>${stage} subtotal</td><td></td><td></td><td></td><td></td><td>${fmt(sub, 3)}</td></tr>`; };
+  for (const [st, flow, unit, amt, ef] of r.inventory) {
+    if (st !== stage) { flush(); stage = st; sub = 0; }
+    const g = amt / U * ef; sub += g; total += g;
+    html += `<tr><td class="l">${flow}</td><td>${unit}</td><td>${fmt(amt, 3)}</td><td>${fmt(amt / U, 4)}</td><td>${fmt(ef, 3)}</td><td>${fmt(g, 3)}</td></tr>`;
+  }
+  flush();
+  html += `<tr class="best"><td>Total climate impact per use</td><td>kg CO₂e</td><td></td><td></td><td></td><td>${fmt(total, 3)}</td></tr></tbody>`;
+  $("t-inv").innerHTML = html;
+}
+
+function tableSrc() {
+  if ($("t-src").dataset.done) return;
+  $("t-src").dataset.done = 1;
+  const rows = DATA.sources;
+  $("t-src").innerHTML = `<thead><tr><th>Parameter</th><th>Value</th><th>Range</th><th>Unit</th><th>Type</th><th>Quality</th><th>Source</th></tr></thead><tbody>` + rows.map(r =>
+    `<tr><td class="l">${esc(r.parameter)}${r.used_in_model ? "" : ' <span class="note">(context only)</span>'}</td><td>${r.value}</td><td>${r.low != null ? r.low + " – " + r.high : ""}</td><td>${esc(r.unit)}</td><td><span class="tag ${r.type === "assumption" ? "ass" : "lit"}">${r.type}</span></td><td>${r.quality}/5</td><td class="l">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.source)}</a>` : esc(r.source || "")}</td></tr>`).join("") + "</tbody>";
+}
+
+let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(draw, 120); }).observe(document.querySelector("main"));
+syncInputs();
+const h0 = location.hash.slice(1); if (["overview", "scenario", "uncertainty", "optimiser", "inventory", "methods"].includes(h0)) S.tab = h0;
+update(); showTab();
+})();
+</script>
+
+</body>
+</html>
