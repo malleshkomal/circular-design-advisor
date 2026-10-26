@@ -11,12 +11,12 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 
 | | What | How to open | Needs |
 |---|---|---|---|
-| 1 | **Offline dashboard** – fully interactive: sliders, scenario lab, Monte Carlo, optimiser, live LCI | Download [`outputs/dashboard_offline.html`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/dashboard_offline.html) and double-click it | A web browser only |
+| 1 | **Offline dashboard** – fully interactive: sliders, scenario lab, Monte Carlo, optimiser, live LCI | Download the [**offline pack (zip)**](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/circular-design-advisor-offline.zip), unzip, double-click `dashboard_offline.html` | A web browser only |
 | 2 | **LCI workbook** – formula-driven Excel inventory, GWP by stage, cost, KPIs | Download [`outputs/LCI_inventory.xlsx`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/LCI_inventory.xlsx) | Excel or LibreOffice |
-| 2b | **LCI workbook viewer** – every sheet of the workbook in the browser; click a cell to see its formula | Download [`outputs/lci_workbook.html`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/lci_workbook.html) and double-click it | A web browser only |
+| 2b | **LCI workbook viewer** – every sheet of the workbook in the browser; click a cell to see its formula | In the same [offline pack (zip)](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/circular-design-advisor-offline.zip): double-click `lci_workbook.html` | A web browser only |
 | 3 | **Streamlit app** – the full Python version, including machine learning and the assistant | `streamlit run app.py` | Python + `requirements.txt` |
 
-For offline use, download the whole `outputs/` folder (or at least `dashboard_offline.html`, `lci_workbook.html` and `LCI_inventory.xlsx`) and keep the files together: the dashboard, the workbook viewer and the Excel file link to each other. `outputs/dashboard_static.html` is an older animated, non-interactive export.
+The offline pack holds the dashboard, the workbook viewer and the Excel file; keep them together, they link to each other. Opening an `.html` file straight from a GitHub link shows its source code, so use the zip (or, in a clone, open the files in `outputs/`). `outputs/dashboard_static.html` is an older animated, non-interactive export.
 
 ## What is inside
 
@@ -52,6 +52,7 @@ python scripts/run_analysis.py           # results/, ML model, outputs/dashboard
 python scripts/build_dashboard.py        # outputs/dashboard_offline.html (after changing data/ or web/)
 python scripts/build_lci_workbook.py     # outputs/LCI_inventory.xlsx (open and save in Excel to recalculate)
 python scripts/build_lci_viewer.py       # outputs/lci_workbook.html (from the recalculated workbook)
+python scripts/package_offline.py        # outputs/circular-design-advisor-offline.zip
 pytest                                   # 19 tests, incl. JavaScript-vs-Python check (needs Node.js)
 ```
 
@@ -75,7 +76,8 @@ circular-design-advisor/
 │   ├── run_analysis.py       Batch analysis → results/ and outputs/dashboard_static.html
 │   ├── build_dashboard.py    data/ + web/ → outputs/dashboard_offline.html
 │   ├── build_lci_workbook.py data/ → outputs/LCI_inventory.xlsx
-│   └── build_lci_viewer.py   outputs/LCI_inventory.xlsx → outputs/lci_workbook.html
+│   ├── build_lci_viewer.py   outputs/LCI_inventory.xlsx → outputs/lci_workbook.html
+│   └── package_offline.py    outputs/ → circular-design-advisor-offline.zip
 ├── outputs/                  Ready-to-open deliverables (HTML dashboards, workbook viewer, Excel workbook)
 ├── results/                  Generated analysis tables (CSV, JSON)
 ├── docs/                     METHODS.md / .pdf, flow diagram, screenshots
