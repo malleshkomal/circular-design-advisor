@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from build_dashboard import OUT, model_data, render  # noqa: E402
+import build_lci_viewer  # noqa: E402
 from cirdesign.analysis import break_even_uses  # noqa: E402
 from cirdesign.model import evaluate_all  # noqa: E402
 from cirdesign.recommend import recommend  # noqa: E402
@@ -39,6 +40,12 @@ console.log(JSON.stringify(cases.map(c => {
 def test_built_dashboard_is_up_to_date():
     assert OUT.exists(), "run python scripts/build_dashboard.py"
     assert OUT.read_text(encoding="utf-8") == render(), "outputs/dashboard_offline.html is stale: run python scripts/build_dashboard.py"
+
+
+def test_built_lci_viewer_is_up_to_date():
+    assert build_lci_viewer.OUT.exists(), "run python scripts/build_lci_viewer.py"
+    assert build_lci_viewer.OUT.read_text(encoding="utf-8") == build_lci_viewer.render(), \
+        "outputs/lci_workbook.html is stale: run python scripts/build_lci_viewer.py"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node.js not installed")

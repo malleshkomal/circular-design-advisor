@@ -13,9 +13,10 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 |---|---|---|---|
 | 1 | **Offline dashboard** – fully interactive: sliders, scenario lab, Monte Carlo, optimiser, live LCI | Download [`outputs/dashboard_offline.html`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/dashboard_offline.html) and double-click it | A web browser only |
 | 2 | **LCI workbook** – formula-driven Excel inventory, GWP by stage, cost, KPIs | Download [`outputs/LCI_inventory.xlsx`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/LCI_inventory.xlsx) | Excel or LibreOffice |
+| 2b | **LCI workbook viewer** – every sheet of the workbook in the browser; click a cell to see its formula | Download [`outputs/lci_workbook.html`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/lci_workbook.html) and double-click it | A web browser only |
 | 3 | **Streamlit app** – the full Python version, including machine learning and the assistant | `streamlit run app.py` | Python + `requirements.txt` |
 
-Keep `dashboard_offline.html` and `LCI_inventory.xlsx` in the same folder so the dashboard's "Download Excel workbook" button works offline. `outputs/dashboard_static.html` is an older animated, non-interactive export.
+For offline use, download the whole `outputs/` folder (or at least `dashboard_offline.html`, `lci_workbook.html` and `LCI_inventory.xlsx`) and keep the files together: the dashboard, the workbook viewer and the Excel file link to each other. `outputs/dashboard_static.html` is an older animated, non-interactive export.
 
 ## What is inside
 
@@ -49,8 +50,9 @@ pip install -r requirements.txt
 streamlit run app.py                     # Streamlit dashboard
 python scripts/run_analysis.py           # results/, ML model, outputs/dashboard_static.html
 python scripts/build_dashboard.py        # outputs/dashboard_offline.html (after changing data/ or web/)
-python scripts/build_lci_workbook.py     # outputs/LCI_inventory.xlsx (open in Excel to recalculate)
-pytest                                   # 18 tests, incl. JavaScript-vs-Python check (needs Node.js)
+python scripts/build_lci_workbook.py     # outputs/LCI_inventory.xlsx (open and save in Excel to recalculate)
+python scripts/build_lci_viewer.py       # outputs/lci_workbook.html (from the recalculated workbook)
+pytest                                   # 19 tests, incl. JavaScript-vs-Python check (needs Node.js)
 ```
 
 The first dashboard start trains the ML models if `results/ml_model.joblib` is missing (about 30 seconds).
@@ -66,19 +68,21 @@ circular-design-advisor/
 ├── src/cirdesign/            Python model: LCA per use, KPIs, analysis, recommendation, ML, chatbot, charts
 ├── web/                      Source of the offline dashboard
 │   ├── model.js              JavaScript port of src/cirdesign (model, recommendation, analysis)
-│   └── template.html         Page layout, styles and charts
+│   ├── template.html         Dashboard layout, styles and charts
+│   └── lci_viewer_template.html  Workbook viewer page
 ├── scripts/
 │   ├── run_analysis.py       Batch analysis → results/ and outputs/dashboard_static.html
 │   ├── build_dashboard.py    data/ + web/ → outputs/dashboard_offline.html
-│   └── build_lci_workbook.py data/ → outputs/LCI_inventory.xlsx
-├── outputs/                  Ready-to-open deliverables (HTML dashboards, Excel workbook)
+│   ├── build_lci_workbook.py data/ → outputs/LCI_inventory.xlsx
+│   └── build_lci_viewer.py   outputs/LCI_inventory.xlsx → outputs/lci_workbook.html
+├── outputs/                  Ready-to-open deliverables (HTML dashboards, workbook viewer, Excel workbook)
 ├── results/                  Generated analysis tables (CSV, JSON)
 ├── docs/                     METHODS.md / .pdf, flow diagram, screenshots
 ├── tests/                    pytest suite
 └── requirements.txt
 ```
 
-Everything in `outputs/` is generated: edit `data/`, `src/` or `web/`, then rerun the matching script. A test fails if `outputs/dashboard_offline.html` is out of date.
+Everything in `outputs/` is generated: edit `data/`, `src/` or `web/`, then rerun the matching script. A test fails if `outputs/dashboard_offline.html` or `outputs/lci_workbook.html` is out of date.
 
 ## Illustrative baseline (design B, rental, 6 planned uses, 400 km)
 

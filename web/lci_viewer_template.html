@@ -1,0 +1,153 @@
+<!-- LCI workbook viewer template: scripts/build_lci_viewer.py inlines the workbook values here. Do not open this file directly. -->
+<title>Booth Panel LCI Workbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a spreadsheet viewer — summary strip, sheet tabs, formula bar, one scrollable grid */
+:root{
+  --bg:#f6f8f6; --panel:#ffffff; --fg:#1b2420; --muted:#5d6b64; --line:#d8e0db;
+  --accent:#1f6b4f; --accent-ink:#ffffff; --section:#e3efe7; --total:#eef1ef; --key:#fff3a6; --key-ink:#3d3500;
+  --input:#1d4ed8; --assume:#b42318; --bar:#2f8a66; --bar-neg:#9fb8ad;
+  --display:"Fraunces",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --panel:#18201d; --fg:#e4ece7; --muted:#9aaba2; --line:#2c3833;
+  --accent:#4fbf93; --accent-ink:#0b1310; --section:#1e3329; --total:#222b27; --key:#5a5112; --key-ink:#fff6c2;
+  --input:#8fb2ff; --assume:#ff8a80; --bar:#4fbf93; --bar-neg:#3d5249; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --panel:#18201d; --fg:#e4ece7; --muted:#9aaba2; --line:#2c3833;
+  --accent:#4fbf93; --accent-ink:#0b1310; --section:#1e3329; --total:#222b27; --key:#5a5112; --key-ink:#fff6c2;
+  --input:#8fb2ff; --assume:#ff8a80; --bar:#4fbf93; --bar-neg:#3d5249; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:end;justify-content:space-between}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(24px,3.4vw,34px);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:6px 0 0;max-width:68ch}
+.dl{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-ink);text-decoration:none;font-weight:600;padding:10px 16px;border-radius:6px;white-space:nowrap}
+.dl:focus-visible,.tab:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.summary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}
+@media (max-width:760px){.summary{grid-template-columns:1fr}}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.facts dt{color:var(--muted)} .facts dd{margin:0;font-weight:600}
+.pill{display:inline-block;background:var(--key);color:var(--key-ink);padding:1px 8px;border-radius:999px}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:96px minmax(0,1fr) 64px;gap:10px;align-items:center;font-variant-numeric:tabular-nums}
+.bar .track{height:14px;background:var(--total);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;background:var(--bar)}
+.bar.best .lab{font-weight:600}
+.bar .v{text-align:right;font-family:var(--mono);font-size:12.5px}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:thin}
+.tab{font:inherit;font-size:13px;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.fbar{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:12.5px;min-width:0}
+.fbar .ref{color:var(--muted);min-width:5ch}
+.fbar code{overflow-x:auto;white-space:nowrap;min-width:0;flex:1}
+.grid{overflow:auto;max-height:72vh;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+td{border:1px solid var(--line);padding:4px 8px;vertical-align:top;max-width:420px;min-width:40px}
+td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+td.f{cursor:pointer} td.f:hover{background:var(--total)} td.sel{outline:2px solid var(--accent);outline-offset:-2px}
+tr.title td{border:0;font-family:var(--display);font-size:18px;font-weight:600;padding-top:10px}
+tr.note td{border:0;color:var(--muted);font-style:italic}
+td.h{background:var(--accent);color:var(--accent-ink);font-weight:600;position:sticky;top:0;z-index:1}
+td.s{background:var(--section);font-weight:600}
+td.t{background:var(--total)} td.k{background:var(--key);color:var(--key-ink)}
+td.b{font-weight:600} td.in{color:var(--input)} td.as{color:var(--assume)}
+td.ok{color:var(--bar);font-weight:600}
+td a{color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:12.5px}
+.legend i{font-style:normal;font-weight:600}
+@media (prefers-reduced-motion:no-preference){.bar .fill{transition:width .4s ease}}
+</style>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Booth Panel LCI Workbook</h1>
+      <p class="sub">Life cycle inventory of one modular aluminium exhibition panel across five circular strategies. Values below are the recalculated workbook at its default context; open the Excel file to change inputs. For live what-if analysis use the dashboard.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="dl" href="LCI_inventory.xlsx" download>Download .xlsx</a><a class="dl" href="dashboard_offline.html" style="background:var(--panel);color:var(--accent);border:1px solid var(--line)">Open dashboard</a></div>
+  </header>
+  <section class="summary" aria-label="Summary">
+    <div>
+      <p class="eyebrow">Default context</p>
+      <dl class="facts" id="facts"></dl>
+    </div>
+    <div>
+      <p class="eyebrow">Climate impact per use (kg CO₂e, net scrap)</p>
+      <div class="bars" id="bars"></div>
+    </div>
+  </section>
+  <div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
+  <div class="fbar"><span class="ref" id="ref">fx</span><code id="formula">Select a calculated cell to see its formula.</code></div>
+  <div class="grid"><table id="sheet"></table></div>
+  <div class="legend"><span><i style="color:var(--input)">Blue</i> input</span><span><i style="color:var(--assume)">Red</i> assumption (Parameters)</span><span><i class="pill">Yellow</i> decision lever</span><span>Click any calculated cell to see its Excel formula</span></div>
+</div>
+<script>
+const WB = __DATA__;
+const $ = id => document.getElementById(id);
+const sheet = n => WB.find(s => s.name === n);
+const colName = i => { let s=''; i++; while(i){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26);} return s; };
+function find(rows, label){ return rows.find(r => r[0] && r[0][0] === label); }
+
+// summary
+const ctx = sheet('Context').rows, kp = sheet('KPIs').rows, lcia = sheet('LCIA_GWP').rows;
+const val = (rows,label) => { const r = find(rows,label); return r ? r[1][0] : ''; };
+const strat = kp[3].slice(3,8).map(c=>c[0]);
+const rec = find(kp,'Recommended strategy (highest score)');
+[['Design', val(ctx,'Panel design')],['Business model', val(ctx,'Business model')],['Planned uses', val(ctx,'Planned uses (reuse strategies)')],
+ ['Event distance', val(ctx,'Distance to each event (one way)')+' km'],['Credit method', val(ctx,'Recycling credit method')],
+ ['Recommended', rec ? rec[3][0] : '']].forEach(([k,v],i)=>{
+  const dt=document.createElement('dt'); dt.textContent=k; const dd=document.createElement('dd');
+  if(i===5){ const p=document.createElement('span'); p.className='pill'; p.textContent=v; dd.append(p);} else dd.textContent=v;
+  $('facts').append(dt,dd);
+});
+const tot = find(lcia,'Total climate impact per use').slice(3,8).map(c=>parseFloat(c[0].replace(/[(),]/g,'')));
+const mx = Math.max(...tot), mn = Math.min(...tot);
+strat.forEach((s,i)=>{
+  const d=document.createElement('div'); d.className='bar'+(tot[i]===mn?' best':'');
+  d.innerHTML=`<span class="lab"></span><span class="track"><span class="fill" style="display:block;width:${(tot[i]/mx*100).toFixed(1)}%"></span></span><span class="v">${tot[i].toFixed(2)}</span>`;
+  d.querySelector('.lab').textContent=s; $('bars').append(d);
+});
+
+// tabs
+let current;
+function render(name){
+  current = name;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.n===name));
+  const t=$('sheet'); t.textContent='';
+  const s=sheet(name);
+  s.rows.forEach((row,ri)=>{
+    const tr=document.createElement('tr');
+    const isTable = ['Product_Design','Strategies','Business_Models'].includes(name);
+    if(!isTable && ri===0) tr.className='title';
+    else if(!isTable && ri===1) tr.className='note';
+    row.forEach((c,ci)=>{
+      const td=document.createElement('td');
+      if(c[1]) td.className=c[1];
+      if(c[0]==='OK' && name==='Validation') td.classList.add('ok');
+      if(c[1].includes('u')){ const a=document.createElement('a'); a.href=c[0]; a.target='_blank'; a.rel='noopener'; a.textContent=c[0]; td.append(a);} else td.textContent=c[0];
+      if(c[2]){ td.dataset.f=c[2]; td.dataset.ref=colName(ci)+(ri+1); td.tabIndex=0; }
+      if(tr.className && ci===0){ td.colSpan=Math.max(...s.rows.map(r=>r.length)); }
+      tr.append(td);
+    });
+    t.append(tr);
+  });
+  $('ref').textContent='fx'; $('formula').textContent='Select a calculated cell to see its formula.';
+}
+WB.forEach(s=>{
+  const b=document.createElement('button'); b.className='tab'; b.role='tab'; b.dataset.n=s.name; b.textContent=s.name.replace(/_/g,' ');
+  b.addEventListener('click',()=>{ render(s.name); try{history.replaceState(null,'','#'+s.name);}catch(e){} });
+  $('tabs').append(b);
+});
+function pick(td){
+  document.querySelectorAll('td.sel').forEach(x=>x.classList.remove('sel'));
+  td.classList.add('sel'); $('ref').textContent=td.dataset.ref; $('formula').textContent=td.dataset.f;
+}
+$('sheet').addEventListener('click',e=>{ const td=e.target.closest('td.f'); if(td) pick(td); });
+$('sheet').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const td=e.target.closest('td.f'); if(td) pick(td);} });
+const start = decodeURIComponent(location.hash.slice(1));
+render(sheet(start) ? start : 'LCI');
+</script>
