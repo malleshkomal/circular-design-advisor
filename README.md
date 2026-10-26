@@ -21,6 +21,7 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 | Recommendation | Weighted score (0.50 / 0.25 / 0.15 / 0.10) plus transparent rules; disagreements are flagged |
 | Assistant | Rule-based chatbot grounded in the model output; optional LLM wrapper that may only rephrase |
 | Dashboard | Streamlit with animated Plotly charts (press play), count-up KPI cards, streaming chat |
+| LCI workbook | `docs/LCI_inventory.xlsx`: formula-driven Excel life cycle inventory (flows per panel life and per use, GWP by stage, cost, KPIs, validation against the Python model). Rebuild with `python build_lci_workbook.py` |
 
 | Scenario lab (animated) | Trade-offs |
 |---|---|
