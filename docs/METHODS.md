@@ -83,4 +83,4 @@ Direct reuse is recommended (score 0.94; repair ties at 0.94). Reuse beats recyc
 
 ## 9. Reproducibility
 
-`python run_analysis.py` regenerates results, the ML model and the static animated report; `streamlit run app.py` starts the dashboard; `pytest` runs 16 tests.
+`python scripts/run_analysis.py` regenerates results, the ML model and the static animated report (`outputs/dashboard_static.html`); `python scripts/build_dashboard.py` builds the interactive offline dashboard (`outputs/dashboard_offline.html`); `python scripts/build_lci_workbook.py` builds the Excel inventory (`outputs/LCI_inventory.xlsx`); `streamlit run app.py` starts the Streamlit dashboard; `pytest` runs 18 tests.

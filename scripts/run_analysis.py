@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import joblib
@@ -105,7 +105,7 @@ Recommended: <b>{viz.LAB[rec.strategy]}</b>. Press the play buttons on the anima
 <main>{''.join(parts)}</main>
 <div class="note">Illustrative model. Only {int(T['sources'][T['sources'].used_in_model].type.isin(['literature','database']).sum())} of {int(T['sources'].used_in_model.sum())} model inputs come from literature or public databases; the rest are flagged assumptions. Full sources: data/literature_sources.csv.</div>
 </body></html>"""
-    (ROOT / "docs" / "dashboard_static.html").write_text(html, encoding="utf-8")
+    (ROOT / "outputs" / "dashboard_static.html").write_text(html, encoding="utf-8")
 
 
 if __name__ == "__main__":

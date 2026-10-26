@@ -7,6 +7,16 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 
 ![Overview](docs/screenshots/01_overview.png)
 
+## Three ways to use it
+
+| | What | How to open | Needs |
+|---|---|---|---|
+| 1 | **Offline dashboard** – fully interactive: sliders, scenario lab, Monte Carlo, optimiser, live LCI | Download [`outputs/dashboard_offline.html`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/dashboard_offline.html) and double-click it | A web browser only |
+| 2 | **LCI workbook** – formula-driven Excel inventory, GWP by stage, cost, KPIs | Download [`outputs/LCI_inventory.xlsx`](https://github.com/malleshkomal/circular-design-advisor/raw/main/outputs/LCI_inventory.xlsx) | Excel or LibreOffice |
+| 3 | **Streamlit app** – the full Python version, including machine learning and the assistant | `streamlit run app.py` | Python + `requirements.txt` |
+
+Keep `dashboard_offline.html` and `LCI_inventory.xlsx` in the same folder so the dashboard's "Download Excel workbook" button works offline. `outputs/dashboard_static.html` is an older animated, non-interactive export.
+
 ## What is inside
 
 | Layer | What it does |
@@ -21,7 +31,8 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 | Recommendation | Weighted score (0.50 / 0.25 / 0.15 / 0.10) plus transparent rules; disagreements are flagged |
 | Assistant | Rule-based chatbot grounded in the model output; optional LLM wrapper that may only rephrase |
 | Dashboard | Streamlit with animated Plotly charts (press play), count-up KPI cards, streaming chat |
-| LCI workbook | `docs/LCI_inventory.xlsx`: formula-driven Excel life cycle inventory (flows per panel life and per use, GWP by stage, cost, KPIs, validation against the Python model). Rebuild with `python build_lci_workbook.py` |
+| Offline dashboard | `outputs/dashboard_offline.html`: JavaScript port of the model (`web/model.js`) that reproduces the Python results exactly; everything except the ML and the chatbot |
+| LCI workbook | `outputs/LCI_inventory.xlsx`: flows per panel life and per use, GWP by stage, cost, KPIs and a validation sheet against the Python model |
 
 | Scenario lab (animated) | Trade-offs |
 |---|---|
@@ -35,16 +46,39 @@ It chains product and lifecycle data, per-use LCA, circularity KPIs, simulation,
 
 ```bash
 pip install -r requirements.txt
-python run_analysis.py                # results/, ML model, docs/dashboard_static.html
-streamlit run app.py                  # interactive dashboard
-pytest                                # 16 tests
+streamlit run app.py                     # Streamlit dashboard
+python scripts/run_analysis.py           # results/, ML model, outputs/dashboard_static.html
+python scripts/build_dashboard.py        # outputs/dashboard_offline.html (after changing data/ or web/)
+python scripts/build_lci_workbook.py     # outputs/LCI_inventory.xlsx (open in Excel to recalculate)
+pytest                                   # 18 tests, incl. JavaScript-vs-Python check (needs Node.js)
 ```
 
-`docs/dashboard_static.html` is a self-contained animated export you can open in any browser without Python.
-`docs/dashboard_offline.html` is a fully interactive offline dashboard: the model, scenario lab, Monte Carlo, optimiser and live LCI all run in the browser (JavaScript port that reproduces the Python results). Download the `docs/` folder and double-click the file; no internet or Python needed.
 The first dashboard start trains the ML models if `results/ml_model.joblib` is missing (about 30 seconds).
 
 Optional: set `ANTHROPIC_API_KEY` to let an LLM rephrase chatbot answers (`CHATBOT_LLM_MODEL` selects the model). The numbers always come from the model; this wrapper is untested in this repository.
+
+## Project structure
+
+```
+circular-design-advisor/
+├── app.py                    Streamlit dashboard (entry point)
+├── data/                     Model inputs: parameters with sources, designs, strategies, business models
+├── src/cirdesign/            Python model: LCA per use, KPIs, analysis, recommendation, ML, chatbot, charts
+├── web/                      Source of the offline dashboard
+│   ├── model.js              JavaScript port of src/cirdesign (model, recommendation, analysis)
+│   └── template.html         Page layout, styles and charts
+├── scripts/
+│   ├── run_analysis.py       Batch analysis → results/ and outputs/dashboard_static.html
+│   ├── build_dashboard.py    data/ + web/ → outputs/dashboard_offline.html
+│   └── build_lci_workbook.py data/ → outputs/LCI_inventory.xlsx
+├── outputs/                  Ready-to-open deliverables (HTML dashboards, Excel workbook)
+├── results/                  Generated analysis tables (CSV, JSON)
+├── docs/                     METHODS.md / .pdf, flow diagram, screenshots
+├── tests/                    pytest suite
+└── requirements.txt
+```
+
+Everything in `outputs/` is generated: edit `data/`, `src/` or `web/`, then rerun the matching script. A test fails if `outputs/dashboard_offline.html` is out of date.
 
 ## Illustrative baseline (design B, rental, 6 planned uses, 400 km)
 

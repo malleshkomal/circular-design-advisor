@@ -1,4 +1,4 @@
-"""Build docs/LCI_inventory.xlsx: a formula-driven life cycle inventory (LCI) of one aluminium booth panel.
+"""Build outputs/LCI_inventory.xlsx: a formula-driven life cycle inventory (LCI) of one aluminium booth panel.
 
 The workbook mirrors src/cirdesign/model.py in Excel formulas:
     Parameters + Context  ->  Calc (per strategy)  ->  LCI (flows)  ->  LCIA_GWP, Cost  ->  KPIs
@@ -6,7 +6,7 @@ Every input lives in one cell (blue text); everything else is a formula, so chan
 the design, the business model or the credit method recalculates the whole inventory.
 The Validation sheet compares the Excel KPIs with the Python model at the default context.
 
-Usage:  python build_lci_workbook.py   (then recalculate in Excel or LibreOffice)
+Usage:  python scripts/build_lci_workbook.py   (then recalculate in Excel or LibreOffice)
 """
 from __future__ import annotations
 
@@ -21,14 +21,14 @@ from openpyxl.utils import get_column_letter
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from cirdesign.data import load_all  # noqa: E402
 from cirdesign.model import DEFAULT_CONTEXT, evaluate_all  # noqa: E402
 from cirdesign.recommend import WEIGHTS, score_strategies  # noqa: E402
 
-OUT = ROOT / "docs" / "LCI_inventory.xlsx"
+OUT = ROOT / "outputs" / "LCI_inventory.xlsx"
 
 FONT = "Arial"
 F_BASE = Font(name=FONT, size=10)
@@ -194,7 +194,7 @@ def build():
         ("", None),
         ("Important", None),
         ("Data status", "Only 6 of the model inputs come from literature or public databases; the rest are author assumptions (type = assumption, quality 2). Results illustrate the method, not a real product. Do not cite the numbers."),
-        ("Regenerate", "python build_lci_workbook.py  (rebuilds this file from data/*.csv; open in Excel to recalculate)."),
+        ("Regenerate", "python scripts/build_lci_workbook.py  (rebuilds this file from data/*.csv; open in Excel to recalculate)."),
     ]
     r = 4
     for k, v in lines:
