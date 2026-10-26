@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circular Design Advisor</title>
+<style>
+:root{--bg:#f3f5f4;--panel:#fff;--fg:#14201c;--muted:#5d6b64;--line:#d6dedb;--accent:#0f5e52;--head:#0f3d36;--on-head:#e8f3ef}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1513;--panel:#151e1b;--fg:#e3ebe8;--muted:#9aaba2;--line:#2a3632;--accent:#4fc3a6;--head:#123a33;--on-head:#dff2eb;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:32px 16px 48px;display:grid;gap:18px}
+header{background:var(--head);color:var(--on-head);border-radius:10px;padding:24px}
+h1{margin:0 0 6px;font-size:28px}
+header p{margin:0;opacity:.9}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+a.card{display:grid;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;color:inherit;text-decoration:none}
+a.card:hover,a.card:focus-visible{border-color:var(--accent);outline:none}
+a.card b{color:var(--accent);font-size:16px}
+a.card span{color:var(--muted);font-size:13.5px}
+.note{color:var(--muted);font-size:13px}
+.note a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Circular Design Advisor</h1>
+    <p>Reuse, repair, reprocessing, recycling or disposal of a modular aluminium exhibition-booth panel: per-use LCA, circularity KPIs, scenarios and uncertainty.</p>
+  </header>
+  <div class="grid">
+    <a class="card" href="outputs/dashboard_offline.html"><b>Interactive dashboard →</b><span>Change the design, business model, uses and distances; KPIs, scenario lab, Monte Carlo, optimiser and inventory recalculate in your browser.</span></a>
+    <a class="card" href="outputs/lci_workbook.html"><b>LCI workbook viewer →</b><span>Every sheet of the Excel life cycle inventory, with the formula behind each calculated cell.</span></a>
+    <a class="card" href="outputs/LCI_inventory.xlsx" download><b>Download Excel workbook ↓</b><span>Formula-driven inventory, GWP by stage, cost and KPIs, with a validation sheet against the Python model.</span></a>
+    <a class="card" href="outputs/dashboard_static.html"><b>Animated report →</b><span>Static animated export of the Streamlit dashboard charts (large file).</span></a>
+  </div>
+  <p class="note">Illustrative data: only 6 of 26 inputs come from literature or public databases; the rest are flagged assumptions. Source code, methods and tests: <a href="https://github.com/malleshkomal/circular-design-advisor">github.com/malleshkomal/circular-design-advisor</a>.</p>
+</div>
+</body>
+</html>

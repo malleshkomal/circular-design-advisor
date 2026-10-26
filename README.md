@@ -63,6 +63,7 @@ Optional: set `ANTHROPIC_API_KEY` to let an LLM rephrase chatbot answers (`CHATB
 
 ```
 circular-design-advisor/
+├── index.html                Landing page for GitHub Pages (links to the pages in outputs/)
 ├── app.py                    Streamlit dashboard (entry point)
 ├── data/                     Model inputs: parameters with sources, designs, strategies, business models
 ├── src/cirdesign/            Python model: LCA per use, KPIs, analysis, recommendation, ML, chatbot, charts
